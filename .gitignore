@@ -44,3 +44,5 @@
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+cycle_cover
