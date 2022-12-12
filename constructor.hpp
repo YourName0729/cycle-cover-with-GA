@@ -1,6 +1,7 @@
 #pragma once
 
 #include "solver.hpp"
+#include "factory.hpp"
 
 class constructor : public agent {
 public:
@@ -12,7 +13,7 @@ public:
 
 class DummyConstructor : public constructor {
 public:
-    DummyConstructor(const std::string& args = ""): constructor(args + " name=dummy"), solver(property("solver")), T(100) {
+    DummyConstructor(const std::string& args = ""): constructor(args + " name=dummy"), solv(SolverFactory::produce(property("solver"))), T(100) {
         if (meta.find("T") != meta.end()) T = static_cast<unsigned>(meta["T"]);
         if (meta.find("seed") != meta.end()) gen.seed(static_cast<unsigned int>(meta["seed"]));
         else gen.seed(std::random_device()());
@@ -24,16 +25,17 @@ public:
 
         unsigned n = 10, k = 3;
 
-        MinSumProblem best_p(generate(n), k);
-        solution best_s = solver.solve(best_p);
-        problem::obj_t mx = best_p.objective(best_s);
+        // MinSumProblem best_p(generate(n), k);
+        auto best_p = ProblemFactory::produce(property("problem"), generate(n), k);
+        solution best_s = solv->solve(*best_p);
+        problem::obj_t mx = best_p->objective(best_s);
         while (t--) {
-            MinSumProblem pro(generate(n), k);
-            solution sol = solver.solve(pro);
-            problem::obj_t nmx = pro.objective(sol);
+            auto pro = ProblemFactory::produce(property("problem"), generate(n), k);
+            solution sol = solv->solve(*pro);
+            problem::obj_t nmx = pro->objective(sol);
             if (nmx > mx) best_p = pro, best_s = sol, mx = nmx;
         }
-        return {best_p, best_s};
+        return {*best_p, best_s};
     }
 
 private:
@@ -49,7 +51,8 @@ private:
     }
 
 private:
-    DummySolver solver;
+    // DummySolver solver;
+    std::shared_ptr<solver> solv;
     std::default_random_engine gen;
 
     unsigned T;
