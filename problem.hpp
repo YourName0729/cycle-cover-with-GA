@@ -99,3 +99,28 @@ public:
         return true;
     }
 };
+
+
+class MinCycleProblem : public problem {
+public:
+    MinCycleProblem(const graph<obj_t>& gr, unsigned k): problem(gr, k) {}
+
+public:
+
+    virtual obj_t objective(const solution& sol) const override {
+        return sol.size() ;
+    }
+
+    virtual bool feasible(const solution& sol) const override { 
+        obj_t re = 0;
+        for (auto& cyc : sol) {
+            if (cyc.empty()) continue;
+            for (unsigned i = 0; i < cyc.size() - 1; ++i) {
+                re += g(cyc[i], cyc[i + 1]);
+            }
+            re += g(cyc.front(), cyc.back());
+        }
+        return re <= k ;
+    }
+
+};
