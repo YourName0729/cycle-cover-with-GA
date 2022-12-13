@@ -27,7 +27,8 @@ public:
     operator std::string() const {
         std::string re;
         for (const auto& [k, v] : meta) {
-			re += k + '=' + v.value + ' ';
+			if (v.value.find(' ') != std::string::npos) re += k + "=\'" + v.value + "\' ";
+			else re += k + '=' + v.value + ' ';
 		}
         if (meta.size()) re.pop_back();
         return re;

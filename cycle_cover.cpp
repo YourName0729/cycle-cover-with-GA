@@ -1,4 +1,4 @@
-#include "constructor.hpp"
+#include "constructor_factory.hpp"
 
 int main(int argc, char* argv[]) {
 	std::string con_args;
@@ -18,8 +18,9 @@ int main(int argc, char* argv[]) {
 	}
 
 
-    DummyConstructor con(con_args);
-    auto pr = con.construct();
+    // DummyConstructor con(con_args);
+	auto con = ConstructorFactory::produce(con_args);
+    auto pr = con->construct();
 
     std::cout << "problem: \n" << *pr.first << '\n';
     std::cout << "solution: \n" << pr.second << '\n';

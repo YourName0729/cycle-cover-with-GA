@@ -23,7 +23,7 @@ public:
         std::string name = "dummy";
         if (ac().find("name") != ac().end()) {
             name = static_cast<std::string>(ac()["name"]);
-            ac().erase("name");
+            // ac().erase("name");
         }
 
         if (name == "dummy")   return std::make_shared<DummySolver>(static_cast<std::string>(ac));

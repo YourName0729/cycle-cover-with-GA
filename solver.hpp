@@ -223,12 +223,12 @@ protected:
 
 public:
     virtual solution solve(const problem& ins) override {
-        std::cout << "solve\n";
+        // std::cout << "solve\n";
         n = ins().size();
         len = n + ins.get_k() - 1;
 
         auto pool = initialize_pool();
-        std::cout << "---\n";
+        // std::cout << "---\n";
         auto best_gene = pool[0];
         problem::obj_t best_score = ins.objective(decode(best_gene));
 
