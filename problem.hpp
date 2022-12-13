@@ -30,7 +30,7 @@ public:
 
 public:
     const graph_t& operator()() const { return g; }
-
+    const graph_t copy() const { return g; }
     unsigned get_k() const { return k; }
 
 public:

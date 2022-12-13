@@ -3,6 +3,8 @@
 #include <random>
 #include <algorithm>
 #include <array>
+#include <climits>
+#include <stack>
 
 #include "agent.hpp"
 #include "problem.hpp"
