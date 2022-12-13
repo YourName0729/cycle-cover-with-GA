@@ -39,7 +39,7 @@ public:
     }
 
 protected:
-    problem::graph_t generate(unsigned n) {
+    virtual problem::graph_t generate(unsigned n) {
         problem::graph_t g(n);
         std::uniform_real_distribution<problem::obj_t> dis(1, 10);
         for (unsigned i = 0; i < n; ++i) {
@@ -80,5 +80,37 @@ public:
             if (nmx > mx) best_p = pro, best_s = sol, mx = nmx;
         }
         return {best_p, best_s};
+    }
+};
+
+class InstanceMinDeploy : public DummyConstructor {
+public:
+    InstanceMinDeploy(const std::string& args = ""): DummyConstructor("name=min-deploy " + args) {
+        T = 1;
+    }
+
+protected:
+    virtual problem::graph_t generate(unsigned n) override {
+        n = std::uniform_int_distribution<unsigned>(100, 500)(gen);
+        std::vector<std::pair<problem::obj_t, problem::obj_t>> pos;
+        std::vector<problem::obj_t> data;
+        problem::obj_t trans_rate = 1.f;
+        problem::obj_t fly_speed = 10.f;
+
+        std::uniform_real_distribution<problem::obj_t> dis_pos(0, 50000), dis_data(5, 10);
+        for (unsigned i = 0; i < n; ++i) {
+            pos.push_back({dis_pos(gen), dis_pos(gen)});
+            data.push_back(dis_data(gen));
+        }
+
+        problem::graph_t g(n);
+        for (unsigned i = 0; i < n; ++i) {
+            for (unsigned j = 0; j < n; ++j) {
+                problem::obj_t dx = pos[i].first - pos[j].first;
+                problem::obj_t dy = pos[i].second - pos[j].second;
+                g(i, j) = (data[i] + data[j]) / trans_rate / 2.f + std::sqrt(dx * dx + dy * dy) / fly_speed;
+            }
+        }
+        return g;
     }
 };

@@ -12,8 +12,9 @@ public:
             // ac().erase("name");
         }
 
-        if (name == "dummy")   return std::make_shared<DummyConstructor>(static_cast<std::string>(ac));
-        else if (name == "es") return std::make_shared<EvolutionStrategy>(static_cast<std::string>(ac));
-        else                   return std::make_shared<DummyConstructor>(static_cast<std::string>(ac));
+        if (name == "dummy")           return std::make_shared<DummyConstructor>(static_cast<std::string>(ac));
+        else if (name == "es")         return std::make_shared<EvolutionStrategy>(static_cast<std::string>(ac));
+        else if (name == "min-deploy") return std::make_shared<InstanceMinDeploy>(static_cast<std::string>(ac));
+        else                           return std::make_shared<DummyConstructor>(static_cast<std::string>(ac));
     }
 };
