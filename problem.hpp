@@ -70,3 +70,32 @@ public:
         return true;
     }
 };
+
+class MinMaxProblem : public problem {
+public:
+    MinMaxProblem(const graph<obj_t>& gr, unsigned k): problem(gr, k) {}
+
+public:
+    virtual obj_t objective(const solution& sol) const override {
+        obj_t re = 0;
+        for (auto& cyc : sol) {
+            obj_t sm = 0;
+            if (cyc.empty()) continue;
+            for (unsigned i = 0; i < cyc.size() - 1; ++i) {
+                sm += g(cyc[i], cyc[i + 1]);
+            }
+            sm += g(cyc.front(), cyc.back());
+            re = std::max(re, sm);
+        }
+        return re;
+    }
+
+    virtual bool feasible(const solution& sol) const override {
+        if (sol.size() > k) return false;
+        for (auto& cyc : sol) {
+            if (cyc.empty()) continue;
+            for (auto v : cyc) if (v >= g.size()) return false;
+        }
+        return true;
+    }
+};
