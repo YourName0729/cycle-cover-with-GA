@@ -28,3 +28,10 @@ Test min-deploy instance
 make
 ./cycle_cover --constructor="name=min-deploy k=30 problem=min-max solver='name=ga m=10 T=2'"
 ```
+
+
+Test mccp instance
+```
+make
+./cycle_cover --constructor="name=mccp k=1800 n=500 problem=mccp solver='name=mccp'"
+```
