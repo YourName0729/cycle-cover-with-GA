@@ -26,9 +26,10 @@ public:
             // ac().erase("name");
         }
 
-        if (name == "dummy")   return std::make_shared<DummySolver>(static_cast<std::string>(ac));
-        else if (name == "ga") return std::make_shared<GeneticAlgorithm>(static_cast<std::string>(ac));
-        else                   return std::make_shared<DummySolver>(static_cast<std::string>(ac));
+        if (name == "dummy")           return std::make_shared<DummySolver>(static_cast<std::string>(ac));
+        else if (name == "ga")         return std::make_shared<GeneticAlgorithm>(static_cast<std::string>(ac));
+        else if (name == "elitism-ga") return std::make_shared<ElitismGA>(static_cast<std::string>(ac));
+        else                           return std::make_shared<DummySolver>(static_cast<std::string>(ac));
     }
 
 };

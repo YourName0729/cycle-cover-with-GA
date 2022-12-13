@@ -135,7 +135,7 @@ protected:
 
     virtual std::vector<gene> crossover(const std::vector<gene>& pool) {
         std::vector<gene> re;
-        for (unsigned i = 0; i < pool.size(); i += 2) {
+        for (unsigned i = 0; i + 1 < pool.size(); i += 2) {
             // std::cout << "-> " << i << ' ' << pool.size() << '\n';
             // for (auto g : pool) {
             //     for (auto v : g) {
@@ -260,7 +260,7 @@ public:
         return decode(best_gene);
     }
 
-private:
+protected:
     unsigned m; // size of gene pool
     unsigned T; // # of iterations
 
@@ -269,4 +269,71 @@ private:
     unsigned len; // length of a gene <permutation of # of nodes, k-1 cut on # of nodes>
 
     std::default_random_engine gen;
+};
+
+class ElitismGA : public GeneticAlgorithm {
+public:
+    ElitismGA(const std::string& args = "") : GeneticAlgorithm("name=elitism-ga " + args), elite_rate(0.1) {
+        if (meta.find("elite_rate") != meta.end()) m = static_cast<unsigned>(meta["elite_rate"]);
+    }
+
+protected:
+    virtual std::vector<gene> selection(const std::vector<gene>& org, const problem& ins) override {
+        std::vector<gene> re = org;
+        std::sort(re.begin(), re.end(), [&](const gene& a, const gene& b) {
+            return ins.objective(decode(a)) < ins.objective(decode(b));
+        });
+
+        re.erase(re.begin() + static_cast<unsigned>(re.size() * elite_rate), re.end());
+        std::shuffle(re.begin(), re.end(), gen);
+        return re;
+    }
+
+public:
+    virtual solution solve(const problem& ins) override {
+        n = ins().size();
+        len = n + ins.get_k() - 1;
+
+        auto pool = initialize_pool();
+        // std::cout << "---\n";
+        auto best_gene = pool[0];
+        problem::obj_t best_score = ins.objective(decode(best_gene));
+
+        unsigned t = T;
+        while (t--) {
+            // std::cout << "t = " << t << '\n';
+            // std::cout << "selection\n";
+            auto elite = selection(pool, ins);
+            // std::cout << "crossover\n";
+            auto child = crossover(elite);
+            while (elite.size() + child.size() < m) {
+                std::shuffle(elite.begin(), elite.end(), gen);
+                auto new_child = crossover(elite);
+                child.insert(child.end(), new_child.begin(), new_child.end());
+            }
+            while(elite.size() + child.size() > m) child.pop_back();
+            // pool = crossover(pool);
+            // std::cout << "mutation\n";
+            child = mutation(child);
+            pool = elite;
+            pool.insert(pool.end(), child.begin(), child.end());
+        
+            // for (auto g : pool) {
+            //     for (auto v : g) {
+            //         std::cout << v << ' ';
+            //     }
+            //     std::cout << " = " << ins.objective(decode(g)) << '\n';
+            // }
+
+            for (auto& g : pool) {
+                problem::obj_t nobj = ins.objective(decode(g));
+                if (nobj < best_score) best_gene = g, best_score = nobj;
+            }
+        }
+
+        return decode(best_gene);
+    } 
+
+protected:
+    float elite_rate;
 };
