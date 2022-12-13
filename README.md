@@ -30,8 +30,8 @@ make
 ```
 
 
-Test mccp instance
-```
+Test mccp instance // set demo=1 to see the process of finding cycles 
+``` 
 make
-./cycle_cover --constructor="name=mccp k=1800 n=500 problem=mccp solver='name=mccp'"
+./cycle_cover --constructor="name=mccp k=1800 n=500 problem=mccp solver='name=mccp demo=1'"
 ```
