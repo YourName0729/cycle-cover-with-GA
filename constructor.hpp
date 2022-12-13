@@ -124,7 +124,7 @@ public:
 
 protected:
     virtual problem::graph_t generate(unsigned n) override {
-        n = std::uniform_int_distribution<unsigned>(100, 500)(gen);
+    
         std::vector<std::pair<problem::obj_t, problem::obj_t>> pos;
         std::vector<problem::obj_t> data;
         problem::obj_t trans_rate = 1.f;

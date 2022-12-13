@@ -350,10 +350,11 @@ protected:
 
 class MCCPSolver : public solver {
 public:
-    MCCPSolver(const std::string& args = ""): solver(args + " name=MCCP"), T(100) {
+    MCCPSolver(const std::string& args = ""): solver(args + " name=MCCP"), T(100), demo(0) {
         if (meta.find("seed") != meta.end()) gen.seed(static_cast<unsigned int>(meta["seed"]));
         else gen.seed(std::random_device()());
         if (meta.find("T") != meta.end()) T = static_cast<unsigned>(meta["T"]);
+        if (meta.find("demo") != meta.end()) demo = static_cast<bool>(meta["demo"]);
     }
 
     std::vector< std::vector< std::pair<int,int> > > find_MSTs( problem::graph_t graph ) {
@@ -705,6 +706,7 @@ public:
         solution best ;
         size_t n = ins.copy().size() ;
         best.resize(n) ; 
+        if ( ! demo ) std::cout.setstate(std::ios_base::failbit);
         for ( size_t i = 2 ; i < n ; i++ ) {
             
             float threshold = 1.0*ins.get_k()/i ;
@@ -719,6 +721,7 @@ public:
             if ( Ci.size() >= best.size()*2 ) break ;
         }
 
+        std::cout.clear();
         return best ;
     }
 
@@ -727,5 +730,6 @@ public:
 private:
     std::default_random_engine gen;
 
+    bool demo ; 
     unsigned T;
 };
