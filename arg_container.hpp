@@ -26,8 +26,10 @@ public:
 
     operator std::string() const {
         std::string re;
-        for (const auto& [k, v] : meta) re += k + '=' + v.value + ' ';
-        re.pop_back();
+        for (const auto& [k, v] : meta) {
+			re += k + '=' + v.value + ' ';
+		}
+        if (meta.size()) re.pop_back();
         return re;
     }
 

@@ -8,7 +8,7 @@ public:
     constructor(const std::string& args = ""): agent(args + " role=constructor") {}
 
 public:
-    virtual std::pair<problem, solution> construct() = 0;
+    virtual std::pair<std::shared_ptr<problem>, solution> construct() = 0;
 };
 
 class DummyConstructor : public constructor {
@@ -20,8 +20,8 @@ public:
     }
 
 public:
-    virtual std::pair<problem, solution> construct() override {
-        unsigned t = T;
+    virtual std::pair<std::shared_ptr<problem>, solution> construct() override {
+        unsigned t = T - 1;
 
         unsigned n = 10, k = 3;
 
@@ -35,7 +35,7 @@ public:
             problem::obj_t nmx = pro->objective(sol);
             if (nmx > mx) best_p = pro, best_s = sol, mx = nmx;
         }
-        return {*best_p, best_s};
+        return {best_p, best_s};
     }
 
 private:

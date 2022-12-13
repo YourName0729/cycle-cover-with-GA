@@ -9,7 +9,7 @@
 
 class ProblemFactory {
 public:
-    static std::shared_ptr<problem> produce(std::string name, const problem::graph_t& gr, unsigned k) {
+    static std::shared_ptr<problem> produce(std::string name, const problem::graph_t& gr = problem::graph_t(), unsigned k = 0) {
         if (name == "min-sum") return std::make_shared<MinSumProblem>(gr, k);
         else                   return std::make_shared<MinSumProblem>(gr, k);
     }
@@ -25,8 +25,9 @@ public:
             ac().erase("name");
         }
 
-        if (name == "dummy") return std::make_shared<DummySolver>(static_cast<std::string>(ac));
-        else                 return std::make_shared<DummySolver>(static_cast<std::string>(ac));
+        if (name == "dummy")   return std::make_shared<DummySolver>(static_cast<std::string>(ac));
+        else if (name == "ga") return std::make_shared<GeneticAlgorithm>(static_cast<std::string>(ac));
+        else                   return std::make_shared<DummySolver>(static_cast<std::string>(ac));
     }
 
 };
