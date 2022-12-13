@@ -6,6 +6,12 @@
 
 #include "agent.hpp"
 #include "problem.hpp"
+#include "dsu.hpp"
+#include "match.hpp"
+
+
+using MWM = MaximumWeightedMatching<float>;
+using Edge = MWM::InputEdge;
 
 class solver : public agent {
 public:
