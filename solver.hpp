@@ -234,21 +234,21 @@ public:
 
         unsigned t = T;
         while (t--) {
-            std::cout << "t = " << t << '\n';
-            std::cout << "selection\n";
+            // std::cout << "t = " << t << '\n';
+            // std::cout << "selection\n";
             pool = selection(pool, ins);
-            std::cout << "mutation\n";
+            // std::cout << "mutation\n";
             pool = mutation(pool);
-            std::cout << "crossover\n";
+            // std::cout << "crossover\n";
             pool = crossover(pool);
 
         
-            for (auto g : pool) {
-                for (auto v : g) {
-                    std::cout << v << ' ';
-                }
-                std::cout << " = " << ins.objective(decode(g)) << '\n';
-            }
+            // for (auto g : pool) {
+            //     for (auto v : g) {
+            //         std::cout << v << ' ';
+            //     }
+            //     std::cout << " = " << ins.objective(decode(g)) << '\n';
+            // }
 
             for (auto& g : pool) {
                 problem::obj_t nobj = ins.objective(decode(g));
