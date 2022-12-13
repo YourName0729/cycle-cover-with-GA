@@ -237,10 +237,11 @@ public:
             // std::cout << "t = " << t << '\n';
             // std::cout << "selection\n";
             pool = selection(pool, ins);
-            // std::cout << "mutation\n";
-            pool = mutation(pool);
             // std::cout << "crossover\n";
             pool = crossover(pool);
+            // std::cout << "mutation\n";
+            pool = mutation(pool);
+            
 
         
             // for (auto g : pool) {

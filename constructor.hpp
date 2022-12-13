@@ -97,7 +97,7 @@ protected:
         problem::obj_t trans_rate = 1.f;
         problem::obj_t fly_speed = 10.f;
 
-        std::uniform_real_distribution<problem::obj_t> dis_pos(0, 50000), dis_data(5, 10);
+        std::uniform_real_distribution<problem::obj_t> dis_pos(0, 5000), dis_data(5, 10);
         for (unsigned i = 0; i < n; ++i) {
             pos.push_back({dis_pos(gen), dis_pos(gen)});
             data.push_back(dis_data(gen));
