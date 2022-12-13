@@ -15,3 +15,9 @@ Test GA
 make
 ./cycle_cover --constructor="T=1 problem=min-max solver='name=ga m=10 T=2'"
 ```
+
+test ES
+```
+make
+./cycle_cover --constructor="name=es T=1 n=15 k=4 problem=min-max solver='name=ga m=10 T=2'"
+```
