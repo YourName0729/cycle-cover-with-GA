@@ -20,7 +20,7 @@ Test ES
 
 ```
 make
-./cycle_cover --constructor="name=es T=1 n=15 k=4 problem=min-max solver='name=ga m=10 T=2'"
+./cycle_cover --constructor="name=es T=100 demo=1 n=100 k=20 problem=min-max solver='name=elitism-ga m=100 T=200'"
 ```
 
 Test min-deploy instance

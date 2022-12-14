@@ -282,7 +282,7 @@ protected:
 class ElitismGA : public GeneticAlgorithm {
 public:
     ElitismGA(const std::string& args = "") : GeneticAlgorithm("name=elitism-ga " + args), elite_rate(0.1) {
-        if (meta.find("elite_rate") != meta.end()) m = static_cast<unsigned>(meta["elite_rate"]);
+        if (meta.find("elite_rate") != meta.end()) elite_rate = static_cast<float>(meta["elite_rate"]);
     }
 
 protected:
