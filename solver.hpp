@@ -359,7 +359,7 @@ public:
 
     std::vector< std::vector< std::pair<int,int> > > find_MSTs( problem::graph_t graph ) {
         size_t n = graph.size() ;
-        std::vector< std::pair<float,int> > distance(n, std::make_pair(INT_MAX,-1) ) ;
+        std::vector< std::pair<float,int> > distance(n, std::make_pair(1e9,-1) ) ;
         std::vector<bool> visited(n,false) ;
         std::vector< std::vector< std::pair<int,int> > > MSTs ;
         int src = 0 ; 
@@ -371,14 +371,14 @@ public:
             std::vector< std::pair<int,int> > mst ;
             visited[cur] = true ;
             for ( size_t i = 0 ; i < n ;i++ ) {
-                if ( distance[i].first > graph(cur,i) && graph(cur,i) > 0 && !visited[i] )
+                if ( distance[i].first-graph(cur,i) > 1e-5 && graph(cur,i) > 0 && !visited[i] )
                     distance[i] = std::make_pair(graph(cur,i),cur) ;
             }
 
-            float min_weight = INT_MAX ;
+            float min_weight = 1e9 ;
             int nextN = -1 ;
             for ( size_t i = 0 ; i < n ; i++ ) {
-                if ( distance[i].first < min_weight && !visited[i] ) {
+                if ( min_weight-distance[i].first > 1e-5 && !visited[i] ) {
                     min_weight = distance[i].first ;
                     nextN = i ;
                 }
@@ -393,12 +393,12 @@ public:
                 min_weight = INT_MAX ;
                 nextN = -1 ;
                 for ( size_t i = 0 ; i < n ;i++ ) {
-                    if ( distance[i].first > graph(cur,i) && graph(cur,i) > 0 && !visited[i] )
+                    if ( distance[i].first-graph(cur,i) > 1e-5 && graph(cur,i) > 0 && !visited[i] )
                         distance[i] = std::make_pair(graph(cur,i),cur) ;
                 }
 
                 for ( size_t i = 0 ; i < n ; i++ ) {
-                    if ( distance[i].first < min_weight && !visited[i] ) {
+                    if ( min_weight-distance[i].first > 1e-5 && !visited[i] ) {
                         min_weight = distance[i].first ;
                         nextN = i ;
                     }
@@ -485,7 +485,7 @@ public:
         problem::graph_t graph = ins.copy() ; 
         for ( size_t i = 0 ; i < graph.size(); i++ ) {
             for ( size_t j = i+1 ; j < graph.size(); j++ ) {
-                if ( ins.copy()(i,j) > threshold ) {
+                if ( ins.copy()(i,j)-threshold > 1e-5) {
                     graph(i,j) = graph(j,i) = 0 ;
                 }
             }
@@ -542,7 +542,7 @@ public:
 
             for ( int i = 0 ; i < n_vertices ; i++ ) {
                 for ( int j = i+1 ; j < n_vertices ; j++ ) {
-                    if ( max_w < ins.copy()(V_o[i],V_o[j]) ) max_w = ins.copy()(V_o[i],V_o[j]) ;
+                    if ( ins.copy()(V_o[i],V_o[j]) -max_w > 1e-5) max_w = ins.copy()(V_o[i],V_o[j]) ;
                 }
             }
 
@@ -634,21 +634,21 @@ public:
             tour_visit.push_back(EC_visit.back()) ;
 
           
-            if ( tour_cost <= ins.get_k() ) {
+            if ( ins.get_B()-tour_cost > 1e-5 ) {
                 Ci.push_back(tour_visit) ;
                 std::cout << "Add new tour to Ci , size = " << Ci.back().size() << "\n" ; 
             }
             else {
                 auto split = tour_visit ;
                 auto residual_cost = tour_cost ;
-                while ( residual_cost > ins.get_k() ) {
+                while ( residual_cost-ins.get_B() > 1e-5 ) {
                     std::cout << "Tour cost exceed limit : " << residual_cost << "\n" ;
                     split.pop_back() ;
                     float newPath_cost = 0 ;
                     std::vector<unsigned> newPath ; 
                     newPath.push_back(split[0]) ;
                     size_t l = split.size()-1, r = 1 ;
-                    while ( newPath_cost+std::min(ins.copy()(split[l],split[l+1]),ins.copy()(split[r],split[r-1]) ) <= ins.get_k()/2 ) {
+                    while ( ins.get_B()/2-(newPath_cost+std::min(ins.copy()(split[l],split[l+1]),ins.copy()(split[r],split[r-1]) ) ) > 1e-5 ) {
                         newPath_cost += std::min(ins.copy()(split[l],split[l+1]),ins.copy()(split[r],split[r-1]) ) ;
                         if ( ins.copy()(split[l],split[l+1]) <= ins.copy()(split[r],split[r-1]) ) {
                             newPath.insert(newPath.begin(), split[l]) ;
@@ -703,24 +703,14 @@ public:
     }
 
     virtual solution solve(const problem& ins) override {
+    
         solution best ;
         size_t n = ins.copy().size() ;
         best.resize(n) ; 
         if ( ! demo ) std::cout.setstate(std::ios_base::failbit);
-        for ( size_t i = 2 ; i < n ; i++ ) {
-            
-            float threshold = 1.0*ins.get_k()/i ;
-            std::cout << "----------Iteration " << i << " Edge weight threshold = " << threshold << " ------------\n\n" ; 
-            solution Ci = christofideMethod(threshold, ins ) ;
-
-            std::cout << "----------Iteration " << i << " Ci has " << Ci.size() << " cycles  ------------\n\n" ; 
-            if ( Ci.size() < best.size() ) 
-                best = Ci ;
-
-            // early return
-            if ( Ci.size() > best.size() ) break ;
-        }
-
+    
+        float threshold = ins.get_B()/4 ;
+        best = christofideMethod(threshold, ins ) ;
         std::cout.clear();
         return best ;
     }
@@ -752,9 +742,10 @@ public:
         float lb = 0, rb = 3600 ;
         auto minB = rb ;
         auto tar = ins.get_k() ;
-        while ( lb <= rb ) {
+        while ( rb-lb > 1e-5 ) {
 
             auto mid = (rb+lb)/2 ;
+            
             auto mccp_ins = MinCycleProblem(ins.copy(),mid) ;
 
             mccpsolver = MCCPSolver() ;
@@ -769,7 +760,7 @@ public:
             }
 
             std::cout << "tour budget B = " << std::setw(8) << mid ;
-            std::cout << " actual maximum cost = " << maxB  << " need " << std::setw(2) <<  mccp_ins.objective(sol) << " cycles "  ;
+            std::cout << " actual maximum cost = " << std::setw(8) << maxB  << " need " << std::setw(2) <<  mccp_ins.objective(sol) << " cycles "  ;
             if ( mccp_ins.objective(sol) <= tar ) std::cout << ", decrease budget B \n" ;
             else std::cout << ", increase budget B \n" ;
         }

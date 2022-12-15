@@ -9,10 +9,10 @@
 
 class ProblemFactory {
 public:
-    static std::shared_ptr<problem> produce(std::string name, const problem::graph_t& gr = problem::graph_t(), unsigned k = 0) {
+    static std::shared_ptr<problem> produce(std::string name, const problem::graph_t& gr = problem::graph_t(), unsigned k = 0, float B = 0 ) {
         if (name == "min-sum")      return std::make_shared<MinSumProblem>(gr, k);
         else if (name == "min-max") return std::make_shared<MinMaxProblem>(gr, k);
-        else if ( name == "mccp" )  return std::make_shared<MinCycleProblem>(gr, k) ;
+        else if ( name == "mccp" )  return std::make_shared<MinCycleProblem>(gr, B) ;
         else                        return std::make_shared<MinSumProblem>(gr, k);
     }
 };
