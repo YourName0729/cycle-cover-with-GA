@@ -390,7 +390,7 @@ public:
                 mst.push_back(std::make_pair(minN,nextN)) ;
                 cur = nextN ;
                 visited[cur] = true ;
-                min_weight = INT_MAX ;
+                min_weight = 1e9 ;
                 nextN = -1 ;
                 for ( size_t i = 0 ; i < n ;i++ ) {
                     if ( distance[i].first-graph(cur,i) > 1e-5 && graph(cur,i) > 0 && !visited[i] )
@@ -491,10 +491,13 @@ public:
             }
         }
 
+        std::cout << graph ;
+
         // find MSTs of each connected component 
         std::cout << "\n----------Step1 : Find MSTs for each connected components ----------\n\n" ;
         auto MSTs = find_MSTs(graph) ;
-
+     
+     
         std::cout << "The number of minimum spanning trees is : " << MSTs.size() ;
      
         std::cout << "\n----------Step1 : Find MSTs for each connected components ----------\n\n" ; 
@@ -708,7 +711,7 @@ public:
         size_t n = ins.copy().size() ;
         best.resize(n) ; 
         if ( ! demo ) std::cout.setstate(std::ios_base::failbit);
-    
+
         float threshold = ins.get_B()/4 ;
         best = christofideMethod(threshold, ins ) ;
         std::cout.clear();
