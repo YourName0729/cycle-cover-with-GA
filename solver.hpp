@@ -60,7 +60,7 @@ private:
 
 class GeneticAlgorithm : public solver {
 public:
-    GeneticAlgorithm(const std::string& args = "") : solver(args + "name=ga"), m(6), T(500) {
+    GeneticAlgorithm(const std::string& args = "") : solver("name=ga" + args), m(6), T(500) {
         if (meta.find("seed") != meta.end()) gen.seed(static_cast<unsigned int>(meta["seed"]));
         else gen.seed(std::random_device()());
         if (meta.find("m") != meta.end()) m = static_cast<unsigned>(meta["m"]);
