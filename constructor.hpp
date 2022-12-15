@@ -13,10 +13,11 @@ public:
 
 class DummyConstructor : public constructor {
 public:
-    DummyConstructor(const std::string& args = ""): constructor("name=dummy " + args), solv(SolverFactory::produce(property("solver"))), T(100), n(10), k(3) {
+    DummyConstructor(const std::string& args = ""): constructor("name=dummy " + args), solv(SolverFactory::produce(property("solver"))), T(100), n(10), k(3),B(0) {
         if (meta.find("T") != meta.end()) T = static_cast<unsigned>(meta["T"]);
         if (meta.find("n") != meta.end()) n = static_cast<unsigned>(meta["n"]);
         if (meta.find("k") != meta.end()) k = static_cast<unsigned>(meta["k"]);
+        if (meta.find("B") != meta.end()) B = static_cast<float>(meta["B"]);
         if (meta.find("seed") != meta.end()) gen.seed(static_cast<unsigned int>(meta["seed"]));
         else gen.seed(std::random_device()());
     }
@@ -26,11 +27,11 @@ public:
         unsigned t = T - 1;
 
         // MinSumProblem best_p(generate(n), k);
-        auto best_p = ProblemFactory::produce(property("problem"), generate(n), k);
+        auto best_p = ProblemFactory::produce(property("problem"), generate(n), k, B);
         solution best_s = solv->solve(*best_p);
         problem::obj_t mx = best_p->objective(best_s);
         while (t--) {
-            auto pro = ProblemFactory::produce(property("problem"), generate(n), k);
+            auto pro = ProblemFactory::produce(property("problem"), generate(n), k,B);
             solution sol = solv->solve(*pro);
             problem::obj_t nmx = pro->objective(sol);
             if (nmx > mx) best_p = pro, best_s = sol, mx = nmx;
@@ -57,7 +58,7 @@ protected:
 
     unsigned T;
     unsigned n, k; // # of nodes and # of cycles
-
+    float B ;
 };
 
 class EvolutionStrategy : public DummyConstructor {

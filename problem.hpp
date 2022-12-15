@@ -22,7 +22,8 @@ public:
     using graph_t = graph<obj_t>;
 
 public:
-    problem(const graph_t& gr, unsigned k): g(gr), k(k) {}
+    problem(const graph_t& gr, unsigned k): g(gr), k(k),B(0) {}
+    problem(const graph_t& gr, obj_t  B): g(gr), B(B),k(0) {}
 
 public:
     virtual obj_t objective(const solution&) const { return 0; }
@@ -32,16 +33,18 @@ public:
     const graph_t& operator()() const { return g; }
     const graph_t copy() const { return g; }
     unsigned get_k() const { return k; }
+    obj_t    get_B() const { return B; }
 
 public:
     friend std::ostream& operator<<(std::ostream& out, const problem& pro) {
-        out << pro.k << ' ' << pro.g;
+        out << pro.k << ' ' << pro.B << ' ' << pro.g;
         return out;
     }
 
 protected:
     graph_t g;
     unsigned k;
+    obj_t B ; 
 };
 
 class MinSumProblem : public problem {
@@ -103,7 +106,7 @@ public:
 
 class MinCycleProblem : public problem {
 public:
-    MinCycleProblem(const graph<obj_t>& gr, unsigned k): problem(gr, k) {}
+    MinCycleProblem(const graph<obj_t>& gr, obj_t B): problem(gr, B) {}
 
     const graph_t copy() const { return g; }
 public:
@@ -121,7 +124,7 @@ public:
             }
             re += g(cyc.front(), cyc.back());
         }
-        return re <= k ;
+        return re <= B ;
     }
 
     obj_t max_cost(const solution& sol) const  { 

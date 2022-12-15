@@ -33,7 +33,7 @@ make
 Test mccp instance // set demo=1 to see the process of finding cycles 
 ``` 
 make
-./cycle_cover --constructor="name=min-deploy k=1200 n=100 problem=mccp solver='name=mccp demo=0'"
+./cycle_cover --constructor="name=min-deploy B=1200 n=100 problem=mccp solver='name=mccp demo=0'"
 ```
 
 Test mmccp instance 
@@ -46,5 +46,5 @@ Test gaip
 
 ```
 make
-./cycle_cover --constructor="name=min-deploy k=10 n=100 problem=min-max solver='name=gaip demo=1'"
+./cycle_cover --constructor="name=min-deploy k=7 n=30 problem=min-max solver='name=gaip m=20 T=1000'"
 ```
