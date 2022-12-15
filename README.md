@@ -41,3 +41,10 @@ Test mmccp instance
 make
 ./cycle_cover --constructor="name=min-deploy k=25 n=400 problem=min-max solver='name=min-max demo=0'"
 ```
+
+Test gaip
+
+```
+make
+./cycle_cover --constructor="name=min-deploy k=10 n=100 problem=min-max solver='name=gaip demo=1'"
+```

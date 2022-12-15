@@ -6,6 +6,7 @@
 #include "arg_container.hpp"
 #include "problem.hpp"
 #include "solver.hpp"
+#include "ga_int_prog.hpp"
 
 class ProblemFactory {
 public:
@@ -32,6 +33,7 @@ public:
         else if (name == "elitism-ga") return std::make_shared<ElitismGA>(static_cast<std::string>(ac));
         else if (name == "mccp" )      return std::make_shared<MCCPSolver>(static_cast<std::string>(ac));
         else if (name == "min-max")    return std::make_shared<MMCCPSolver>(static_cast<std::string>(ac));
+        else if (name == "gaip")       return std::make_shared<GeneAlgoIntProg>(static_cast<std::string>(ac));
         else                           return std::make_shared<DummySolver>(static_cast<std::string>(ac));
     }
 

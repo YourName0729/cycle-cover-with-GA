@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <optional>
+#include <algorithm>
 
 #include "solver.hpp"
 #include "dsu.hpp"
@@ -12,16 +13,19 @@ class GeneAlgoIntProg : public GeneticAlgorithm {
 public:
     class chromosome {
     public:
-        using frag = unsigned long long;
+        using frag = unsigned int;
     public:
-        chromosome(unsigned n) : n(n), val(n >> SFT + (n & ((1 << SFT) - 1) != 0)) {}
+        chromosome() : n(0) {}
+        chromosome(unsigned n) : n(n) {
+            val.resize(n / BITS + (n % BITS != 0));
+        }
 
         std::vector<frag> operator()() { return val; }
         const std::vector<frag> operator()() const { return val; }
 
         void resize(unsigned n) {
             this->n = n;
-            val.resize(n >> SFT + (n & ((1 << SFT) - 1) != 0));
+            val.resize(n / BITS + (n % BITS != 0));
         } 
         std::size_t size() const { return n; }
 
@@ -55,14 +59,28 @@ public:
         }
 
         void flip(unsigned i) {
-            val[i / BITS] ^= (1 << (i % BITS));
+            frag mask = 1 << (i % BITS);
+            val[i / BITS] ^= mask;
+            
+        }
+
+    public:
+        friend std::ostream& operator<<(std::ostream& out, const chromosome& chr) {
+            unsigned acc = 0;
+            for (auto v : chr.val) {
+                for (unsigned i = 0; i < 32 && acc + i < chr.n; ++i) {
+                    out << ".O"[(v & (1 << i)) != 0];
+                }
+                acc += BITS;
+            }
+            return out;
         }
 
     protected:
         std::size_t n;
         std::vector<frag> val;
     public:
-        static const unsigned BITS = 64, SFT = 6;
+        static const unsigned BITS = 32;
     };
 
 protected:
@@ -80,6 +98,8 @@ public:
         if (meta.find("penalty_cover") != meta.end()) penalty_cover = static_cast<float>(meta["penalty_cover"]);
         if (meta.find("penalty_cycle") != meta.end()) penalty_cycle = static_cast<float>(meta["penalty_cycle"]);
         if (meta.find("penalty_connect") != meta.end()) penalty_connect = static_cast<float>(meta["penalty_connect"]);
+
+        if (meta.find("demo") != meta.end()) demo = true;
     }
 
 protected:
@@ -95,10 +115,10 @@ protected:
 
     std::vector<variable> decode(const chromosome& chr) const {
         auto bit_scan = [](chromosome::frag u) {
-            unsigned re = 0, v = 32;
+            unsigned re = 0, v = chromosome::BITS >> 1;
             while (u != 1) {
-                if (u >> v) re += v;
-                v >>= 2;
+                if (u >> v) re += v, u >>= v;
+                v >>= 1;
             }
             return re;
         };
@@ -113,8 +133,12 @@ protected:
             for (auto u = v; u; u = reset(u)) {
                 unsigned idx = acc + bit_scan(lsb(u));
                 unsigned k = idx / tri_all;
+                // std::cout << idx << ' ' << idx % tri_all << ' ' << k << '\n';
+                idx %= tri_all;
                 if (idx < tri) tri = 0, tri_base = n;
-                while (tri + tri_base < idx) tri += tri_base--;
+                while (tri + tri_base <= idx) {
+                    tri += tri_base--;
+                }
                 // this bit 1 indecates edge {i, j}
                 unsigned i = n - tri_base, j = i + idx - tri;
 
@@ -131,9 +155,7 @@ protected:
         std::vector<std::vector<unsigned>> covered(n, std::vector<unsigned>(ins.get_k()));
         std::vector<dsu> ds(ins.get_k(), dsu(n));
         std::vector<std::unordered_set<unsigned>> us(ins.get_k());
-
         auto vars = decode(chr);
-
         for (auto& [i, j, k] : vars) {
             fitn -= ins()(i, j);
             ++covered[i][k], ++covered[j][k];
@@ -149,22 +171,28 @@ protected:
             // if s.size() == 0, no any edge, fine
             // if s.size() == 1, exactly one connected component, good
             // else bad
-            if (s.size() >= 2)
+            if (s.size() >= 2) {
                 fitn -= (s.size() - 1) * penalty_connect * t;
+            }
         }
 
         for (auto& nd_cover : covered) {
             unsigned cnt = 0;
             for (auto v : nd_cover) {
                 // penalty on cycle k accually not forming a cycle    
-                fitn -= std::abs(static_cast<int>(v) - 2) * penalty_cycle * t;
-                cnt += v;
+                if (v != 0) {
+                    if (v != 2) {
+                        fitn -= std::abs(static_cast<int>(v) - 2) * penalty_cycle * t;    
+                    }
+                    cnt += v;    
+                }
             }
             
             // penalty on not covering current node
-            if (cnt == 0) fitn -= penalty_cover * t;
+            if (cnt == 0) {
+                fitn -= penalty_cover * t;
+            }
         }
-
         return fitn;
     }
 
@@ -179,7 +207,7 @@ protected:
         return copy;
     }
 
-    std::vector<chromosome> crossover(const std::vector<chromosome>& pool, unsigned num) {
+    std::vector<chromosome> crossover(std::vector<chromosome>& pool, unsigned num) {
         // generate num children
         std::vector<chromosome> re;
         std::uniform_int_distribution<unsigned> dis(0, len - 1);
@@ -226,15 +254,23 @@ protected:
     std::optional<solution> phenotype(const std::vector<variable>& vars, const problem& ins) const {
         std::vector<std::vector<std::pair<unsigned, unsigned>>> cycs(ins.get_k());
         for (auto& [i, j, k] : vars) cycs[k].push_back({i, j});
+        if (demo) {
+            std::cout << "edges\n";
+            for (auto& cyc : cycs) {
+                for (auto [x, y] : cyc) {
+                    std::cout << x << ' ' << y << " | ";
+                }
+                std::cout << '\n';
+            }
+        }
 
         solution sol(ins.get_k());
 
         for (unsigned i = 0; i < ins.get_k(); ++i) {
             auto& cyc_sol = sol[i];
-            if (cyc_sol.empty()) continue;
-
-            std::vector<std::vector<unsigned>> adj(n);
             auto& cyc = cycs[i];
+            if (cyc.empty()) continue;
+            std::vector<std::vector<unsigned>> adj(n);
             for (auto& [u, v] : cyc) {
                 adj[u].push_back(v);
                 adj[v].push_back(u);
@@ -247,7 +283,7 @@ protected:
             // collect the cycle containing cyc.back().first
             // while there may be other cycles under index k, here just ignore them
             unsigned cnt = 0, cur = cyc.back().first;
-            std::vector<bool> vst(n);
+            std::vector<bool> vst(n, false);
             while (!vst[cur]) {
                 cyc_sol.push_back(cur);
                 vst[cur] = true;
@@ -262,11 +298,6 @@ protected:
         }
 
         std::vector<bool> vst(n);
-        for (auto& cyc : sol) {
-            for (auto v : cyc) {
-                vst[v] = true;
-            }
-        }
         for (auto b : vst) {
             // not covering all nodes
             if (!b) return std::nullopt;
@@ -276,6 +307,7 @@ protected:
 
 public:
     virtual solution solve(const problem& ins) override {
+        if (demo) std::cout << "solve\n";
         n = ins().size();
         len = n * (n + 1) * ins.get_k() / 2;
         if (meta.find("mutation_rate") == meta.end()) mutation_rate = 1.0 / n;
@@ -285,8 +317,7 @@ public:
 
         auto pool = initialize(ins);
         auto best_c = pool[0];
-        auto best_fitness = fitness(best_c, T - t, ins);
-
+        // auto best_fitness = fitness(best_c, T - t, ins);
         while (t--) {
             auto elite = selection(pool, T - t, ins);
             auto child = crossover(elite, m - elite_size);
@@ -294,10 +325,16 @@ public:
             pool = elite;
             pool.insert(pool.end(), child.begin(), child.end());
 
+            auto best_fitness = fitness(best_c, T - t, ins);
             for (auto& chr : elite) {
                 problem::obj_t nfit = fitness(chr, T - t, ins);
-                if (best_fitness < nfit) best_c = chr, best_fitness = nfit;
+                if (best_fitness < nfit) {
+                    best_c = chr, best_fitness = nfit;
+                }
             }
+
+            // if (demo) fitness(best_c, T - t, ins);
+            // demo = 0;
         }
 
         // decode to phenotype aka solution
@@ -306,9 +343,11 @@ public:
     }
 
 protected:
-    float penalty_cover = 10;
-    float penalty_cycle = 10;
+    float penalty_cover = 1;
+    float penalty_cycle = 1;
     float penalty_connect = 10;
     float elite_rate = 0.1;
     float mutation_rate = 0;
+
+    bool demo = false;
 };
