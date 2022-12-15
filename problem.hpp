@@ -105,6 +105,7 @@ class MinCycleProblem : public problem {
 public:
     MinCycleProblem(const graph<obj_t>& gr, unsigned k): problem(gr, k) {}
 
+    const graph_t copy() const { return g; }
 public:
 
     virtual obj_t objective(const solution& sol) const override {
@@ -121,6 +122,21 @@ public:
             re += g(cyc.front(), cyc.back());
         }
         return re <= k ;
+    }
+
+    obj_t max_cost(const solution& sol) const  { 
+        obj_t re = 0;
+        for (auto& cyc : sol) {
+            obj_t cost = 0 ;
+            if (cyc.empty()) continue;
+            for (unsigned i = 0; i < cyc.size() - 1; ++i) {
+                cost += g(cyc[i], cyc[i + 1]);
+            }
+            cost += g(cyc.front(), cyc.back());
+
+            re = std::max(re,cost) ;
+        }
+        return re ;
     }
 
 };

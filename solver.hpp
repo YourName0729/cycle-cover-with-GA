@@ -5,6 +5,7 @@
 #include <array>
 #include <climits>
 #include <stack>
+#include <iomanip>
 
 #include "agent.hpp"
 #include "problem.hpp"
@@ -306,7 +307,6 @@ public:
         // std::cout << "---\n";
         auto best_gene = pool[0];
         problem::obj_t best_score = ins.objective(decode(best_gene));
-
         unsigned t = T;
         while (t--) {
             // std::cout << "t = " << t << '\n';
@@ -718,7 +718,7 @@ public:
                 best = Ci ;
 
             // early return
-            if ( Ci.size() >= best.size()*2 ) break ;
+            if ( Ci.size() > best.size() ) break ;
         }
 
         std::cout.clear();
@@ -731,5 +731,58 @@ private:
     std::default_random_engine gen;
 
     bool demo ; 
+    unsigned T;
+};
+
+
+
+class MMCCPSolver : public solver {
+public:
+    MMCCPSolver(const std::string& args = ""): solver(args + " name=min-max"), T(100), demo(0) {
+        if (meta.find("seed") != meta.end()) gen.seed(static_cast<unsigned int>(meta["seed"]));
+        else gen.seed(std::random_device()());
+        if (meta.find("T") != meta.end()) T = static_cast<unsigned>(meta["T"]);
+        if (meta.find("demo") != meta.end()) demo = static_cast<bool>(meta["demo"]);
+    }
+
+    virtual solution solve(const problem& ins) override {
+        if ( ! demo ) std::cout.setstate(std::ios_base::failbit);
+        solution best ;
+
+        float lb = 0, rb = 3600 ;
+        auto minB = rb ;
+        auto tar = ins.get_k() ;
+        while ( lb <= rb ) {
+
+            auto mid = (rb+lb)/2 ;
+            auto mccp_ins = MinCycleProblem(ins.copy(),mid) ;
+
+            mccpsolver = MCCPSolver() ;
+            auto sol = mccpsolver.solve(mccp_ins) ;
+            auto maxB = mccp_ins.max_cost(sol) ;
+            if (  mccp_ins.objective(sol) <= tar ) {
+                rb = mid-1 ;
+                if ( minB > maxB ) minB = maxB, best = sol ;
+            }
+            else {
+                lb = mid+1 ;
+            }
+
+            std::cout << "tour budget B = " << std::setw(8) << mid ;
+            std::cout << " actual maximum cost = " << maxB  << " need " << std::setw(2) <<  mccp_ins.objective(sol) << " cycles "  ;
+            if ( mccp_ins.objective(sol) <= tar ) std::cout << ", decrease budget B \n" ;
+            else std::cout << ", increase budget B \n" ;
+        }
+
+        std::cout.clear();
+        return best;
+    }
+
+
+private:
+    std::default_random_engine gen;
+
+    MCCPSolver mccpsolver ;
+    bool demo ;
     unsigned T;
 };
