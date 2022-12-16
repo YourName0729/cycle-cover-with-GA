@@ -97,6 +97,7 @@ protected:
 
     solution decode(const gene& gn) const {
         auto g = gn;
+       
         std::sort(g.begin() + n, g.end());
         solution sol(len - n + 1);
         unsigned l = 0;
@@ -109,6 +110,7 @@ protected:
         for (unsigned j = l; j < n; ++j) {
             sol.back().push_back(g[j]);
         }
+
         return sol;
     }
 
@@ -170,7 +172,7 @@ protected:
                     vst[j] = 1;
                     j = inv[pool[i + 1][j]];
                 }
-            }
+            } 
 
             std::vector<unsigned> cuts;
             for (unsigned j = n; j < len; ++j) {
@@ -200,6 +202,7 @@ protected:
         }
 
         std::shuffle(re.begin(), re.end(), gen);
+        
         return re;
     }
 
@@ -294,7 +297,9 @@ protected:
             return ins.objective(decode(a)) < ins.objective(decode(b));
         });
 
+       
         re.erase(re.begin() + static_cast<unsigned>(re.size() * elite_rate), re.end());
+   
         std::shuffle(re.begin(), re.end(), gen);
         return re;
     }
@@ -302,8 +307,7 @@ protected:
 public:
     virtual solution solve(const problem& ins) override {
         n = ins().size();
-        len = n + ins.get_k() - 1;
-
+        len = n + ins.get_k() - 1 ;
         auto pool = initialize_pool();
         // std::cout << "---\n";
         auto best_gene = pool[0];
@@ -314,7 +318,9 @@ public:
             // std::cout << "selection\n";
             auto elite = selection(pool, ins);
             // std::cout << "crossover\n";
+            
             auto child = crossover(elite);
+    
             while (elite.size() + child.size() < m) {
                 std::shuffle(elite.begin(), elite.end(), gen);
                 auto new_child = crossover(elite);
@@ -346,6 +352,154 @@ public:
 protected:
     float elite_rate;
 };
+
+
+class TourGA : public GeneticAlgorithm {
+public:
+    TourGA(const std::string& args = "") : GeneticAlgorithm("name=tour-ga " + args), tour_k(2) {
+        if (meta.find("tour_k") != meta.end()) tour_k = static_cast<unsigned>(meta["tour_k"]);
+      
+    }
+
+protected:
+    virtual std::vector<gene> selection(const std::vector<gene>& org, const problem& ins) override {
+        std::vector<gene> re ;
+        std::uniform_int_distribution<unsigned> dis(0, org.size()-1);
+    
+        for ( auto i = 0 ; i < org.size()/tour_k ; i++ ) {
+            gene best_k_ge ;
+            float best_obj = 1e9 ;
+            for ( auto k = 0 ; k < tour_k ; k++ ) {
+                
+                auto idx = dis(gen) ; 
+                auto cur_obj = ins.objective(decode(org[idx])) ;
+                if ( cur_obj < best_obj ) {
+                    best_k_ge = org[idx] ;
+                    best_obj = cur_obj ;
+                }
+            }
+
+            re.push_back( best_k_ge ) ;
+        }
+
+
+        return re;
+
+    }
+
+public:
+    virtual solution solve(const problem& ins) override {
+        n = ins().size();
+        len = n + ins.get_k() - 1 ;
+        auto pool = initialize_pool();
+        // std::cout << "---\n";
+        auto best_gene = pool[0];
+        problem::obj_t best_score = ins.objective(decode(best_gene));
+        unsigned t = T;
+        while (t--) {
+            // std::cout << "t = " << t << '\n';
+            // std::cout << "selection\n";
+            auto elite = selection(pool, ins);
+            // std::cout << "crossover\n";
+            
+            auto child = crossover(elite);
+    
+            while (elite.size() + child.size() < m) {
+                std::shuffle(elite.begin(), elite.end(), gen);
+                auto new_child = crossover(elite);
+                child.insert(child.end(), new_child.begin(), new_child.end());
+            }
+            while(elite.size() + child.size() > m) child.pop_back();
+            // pool = crossover(pool);
+            // std::cout << "mutation\n";
+            child = mutation(child);
+            pool = elite;
+            pool.insert(pool.end(), child.begin(), child.end());
+        
+            // for (auto g : pool) {
+            //     for (auto v : g) {
+            //         std::cout << v << ' ';
+            //     }
+            //     std::cout << " = " << ins.objective(decode(g)) << '\n';
+            // }
+
+            for (auto& g : pool) {
+                problem::obj_t nobj = ins.objective(decode(g));
+                if (nobj < best_score) best_gene = g, best_score = nobj;
+            }
+        }
+
+        return decode(best_gene);
+    } 
+protected:
+    unsigned tour_k ;
+};
+
+
+class TruncationGA : public GeneticAlgorithm {
+public:
+    TruncationGA(const std::string& args = "") : GeneticAlgorithm("name=trun-ga " + args), trun_size(0.5) {
+        if (meta.find("trun_size") != meta.end()) trun_size = static_cast<float>(meta["trun_size"]);
+      
+    }
+
+protected:
+    virtual std::vector<gene> selection(const std::vector<gene>& org, const problem& ins) override {
+        std::vector<gene> re ;
+    
+        for ( auto i = 0 ; i < 1/trun_size ; i++ ) {
+            for ( auto j = 0 ; j < 1.0*org.size()*trun_size ; j++ ) {
+                re.push_back(org[j]) ;
+                if ( re.size() == m ) return re ;
+            }
+        }
+
+        return re;
+
+    }
+
+public:
+   virtual solution solve(const problem& ins) override {
+        // std::cout << "solve\n";
+        n = ins().size();
+        len = n + ins.get_k() - 1;
+
+        auto pool = initialize_pool();
+        // std::cout << "---\n";
+        auto best_gene = pool[0];
+        problem::obj_t best_score = ins.objective(decode(best_gene));
+
+        unsigned t = T;
+        while (t--) {
+            // std::cout << "t = " << t << '\n';
+            // std::cout << "selection\n";
+            pool = selection(pool, ins);
+            // std::cout << "crossover\n";
+            pool = crossover(pool);
+            // std::cout << "mutation\n";
+            pool = mutation(pool);
+        
+        
+            // for (auto g : pool) {
+            //     for (auto v : g) {
+            //         std::cout << v << ' ';
+            //     }
+            //     std::cout << " = " << ins.objective(decode(g)) << '\n';
+            // }
+
+            for (auto& g : pool) {
+                problem::obj_t nobj = ins.objective(decode(g));
+                if (nobj < best_score) best_gene = g, best_score = nobj;
+            }
+        }
+
+        return decode(best_gene);
+    }
+
+protected:
+    float trun_size ;
+};
+
 
 
 

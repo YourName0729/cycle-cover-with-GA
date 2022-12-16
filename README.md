@@ -21,6 +21,8 @@ Test ES
 ```
 make
 ./cycle_cover --constructor="name=es T=100 demo=1 n=100 k=20 problem=min-max solver='name=elitism-ga m=100 T=200'"
+./cycle_cover --constructor="name=es T=100 demo=1 n=100 k=20 problem=min-max solver='name=tour-ga m=100 tour_k=7 T=200'"
+./cycle_cover --constructor="name=es T=100 demo=1 n=100 k=20 problem=min-max solver='name=trun-ga m=100 trun_k=0.5 T=200'"
 ```
 
 Test min-deploy instance
@@ -39,7 +41,7 @@ make
 Test mmccp instance 
 ``` 
 make
-./cycle_cover --constructor="name=min-deploy k=25 n=400 problem=min-max solver='name=min-max demo=0'"
+./cycle_cover --constructor="name=min-deploy k=5 n=100 problem=min-max solver='name=min-max demo=0'"
 ```
 
 Test gaip

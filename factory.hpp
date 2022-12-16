@@ -31,6 +31,8 @@ public:
         if (name == "dummy")           return std::make_shared<DummySolver>(static_cast<std::string>(ac));
         else if (name == "ga")         return std::make_shared<GeneticAlgorithm>(static_cast<std::string>(ac));
         else if (name == "elitism-ga") return std::make_shared<ElitismGA>(static_cast<std::string>(ac));
+        else if (name == "tour-ga")    return std::make_shared<TourGA>(static_cast<std::string>(ac));
+        else if (name == "trun-ga")    return std::make_shared<TruncationGA>(static_cast<std::string>(ac));
         else if (name == "mccp" )      return std::make_shared<MCCPSolver>(static_cast<std::string>(ac));
         else if (name == "min-max")    return std::make_shared<MMCCPSolver>(static_cast<std::string>(ac));
         else if (name == "gaip")       return std::make_shared<GeneAlgoIntProg>(static_cast<std::string>(ac));
