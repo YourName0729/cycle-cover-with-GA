@@ -140,8 +140,26 @@ protected:
     }
 
     std::vector<unsigned> selection_roulette_wheel(population& ppl, unsigned k) {
-        // TODO
-        return selection_dummy(ppl, k);
+        std::vector<std::pair<problem::obj_t, unsigned>> order(ppl.size());
+        for (unsigned i = 0; i < k; ++i) order[i] = {fitness(ppl[i]), i};
+        problem::obj_t mn = 1e9, sm = 0;
+        for (auto& [fit, idx] : order) mn = std::min(mn, fit);
+        for (auto& [fit, idx] : order) fit -= mn, sm += fit;
+
+        std::uniform_real_distribution<problem::obj_t> dis(0, sm);
+        std::vector<problem::obj_t> samp(k);
+        for (auto& v : samp) v = dis(gen);
+        std::sort(samp.begin(), samp.end());
+
+        std::vector<unsigned> re;
+        problem::obj_t pfx = 0;
+        unsigned idx = 0;
+        for (unsigned i = 0; i < samp.size(); ++i) {
+            while (pfx + order[idx].first < samp[i]) pfx += order[idx++].first;
+            re.push_back(order[idx].second);
+        }
+
+        return re;
     }
 
     std::vector<unsigned> selection_tournament(population& ppl, unsigned k) {
@@ -159,7 +177,28 @@ protected:
     }
 
     void crossover_ox(chromosome& a, chromosome& b) {
-        // TODO
+        std::uniform_int_distribution<unsigned> dis(0, a.size() - 1);
+        unsigned l = dis(gen), r = dis(gen);
+        if (l > r) std::swap(l, r);
+        
+        auto fill_rest = [&](chromosome& chr, const chromosome& proto) {
+            std::vector<bool> vst(chr.size(), false);
+            for (unsigned i = l; i <= r; ++i) vst[chr[i]] = true;
+
+            unsigned ip = 0;
+            for (unsigned i = 0; i < l; ++i) {
+                while (vst[proto[ip]]) ++ip;
+                chr[i] = proto[ip++];
+            }
+            for (unsigned i = r + 1; i < chr.size(); ++i) {
+                while (vst[proto[ip]]) ++ip;
+                chr[i] = proto[ip++];
+            }
+        };
+
+        chromosome acopy = a;
+        fill_rest(a, b);
+        fill_rest(b, acopy);
     }
 
     void crossover_cycle(chromosome& a, chromosome& b) {
@@ -193,7 +232,12 @@ protected:
     void mutation_dummy(chromosome& chr) {}
 
     void mutation_insert(chromosome& chr) {
-        // TODO
+        unsigned x = std::uniform_int_distribution<unsigned>(0, chr.size() - 1)(gen);
+        unsigned y = (x + std::uniform_int_distribution<unsigned>(0, chr.size() - 2)(gen)) % chr.size();
+        if (x > y) std::swap(x, y);
+        unsigned p = chr[y];
+        for (unsigned i = y; i > x; --i) chr[i] = chr[i - 1];
+        chr[x] = p;
     }
 
     void mutation_swap(chromosome& chr) {
@@ -203,14 +247,17 @@ protected:
     }
 
     void mutation_inverse(chromosome& chr) {
-        unsigned x = std::uniform_int_distribution<unsigned>(0, chr.size() - 1)(gen);
-        unsigned y = (x + std::uniform_int_distribution<unsigned>(0, chr.size() - 2)(gen)) % chr.size();
+        std::uniform_int_distribution<unsigned> dis(0, chr.size() - 1);
+        unsigned x = dis(gen), y = dis(gen);
         if (x > y) std::swap(x, y);
-        std::reverse(chr.begin() + x, chr.begin() + y);
+        std::reverse(chr.begin() + x, chr.begin() + y + 1);
     }
 
     void mutation_scramble(chromosome& chr) {
-        // TODO
+        unsigned x = std::uniform_int_distribution<unsigned>(0, chr.size() - 1)(gen);
+        unsigned y = (x + std::uniform_int_distribution<unsigned>(0, chr.size() - 2)(gen)) % chr.size();
+        if (x > y) std::swap(x, y);
+        std::shuffle(chr.begin() + x, chr.begin() + y + 1, gen);
     }
 
 protected:
@@ -227,6 +274,9 @@ protected:
 
     float parent_ratio = 0.75; // ratio of population being parents
     float mutation_rate = 0.5;
+
+    unsigned tournament_k = 3;
+    unsigned tournament_p = 0.9;
 
     bool demo = false;
 };
