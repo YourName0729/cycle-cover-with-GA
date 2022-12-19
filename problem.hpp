@@ -23,7 +23,7 @@ public:
 
 public:
     problem(const graph_t& gr, unsigned k): g(gr), k(k),B(0) {}
-    problem(const graph_t& gr, obj_t  B): g(gr), B(B),k(0) {}
+    problem(const graph_t& gr, obj_t  B): g(gr), k(0), B(B) {}
 
 public:
     virtual obj_t objective(const solution&) const { return 0; }

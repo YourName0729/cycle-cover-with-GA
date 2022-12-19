@@ -168,7 +168,7 @@ public:
                 vertex_stack.pop() ;
             }    
             else {
-                int nextV ;
+                unsigned nextV ;
                 for ( nextV = 0 ; nextV < n ; nextV++ ) {
                     if ( g(cur,nextV) )
                         break ;
@@ -269,7 +269,7 @@ public:
 
             auto matches = MWM(graph.size(), edges).maximum_weighted_matching().second ;
 
-            for ( auto i = 0 ; i <= graph.size() ; i++ ) {
+            for ( auto i = 0 ; i <= static_cast<int>(graph.size()) ; i++ ) {
                 if ( matches[i] && matches[i] < i ) matchings.push_back( std::make_pair(i-1, matches[i]-1) ) ;
             }
 
@@ -434,8 +434,8 @@ public:
 private:
     std::default_random_engine gen;
 
-    bool demo ; 
     unsigned T;
+    bool demo ; 
 };
 
 
@@ -488,6 +488,6 @@ private:
     std::default_random_engine gen;
 
     MCCPSolver mccpsolver ;
-    bool demo ;
     unsigned T;
+    bool demo ;
 };
