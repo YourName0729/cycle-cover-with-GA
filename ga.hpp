@@ -116,7 +116,7 @@ protected:
 
     std::vector<unsigned> selection_dummy(population& ppl, unsigned k) {
         std::vector<unsigned> re(k);
-        for (unsigned i = 0; i < k; ++i) re[i] = k % ppl.size();
+        for (unsigned i = 0; i < k; ++i) re[i] = i % ppl.size();
         return re;
     }
 
@@ -131,7 +131,7 @@ protected:
 
     std::vector<unsigned> selection_elitism(population& ppl, unsigned k) {
         std::vector<std::pair<problem::obj_t, unsigned>> order(ppl.size());
-        for (unsigned i = 0; i < k; ++i) order[i] = {fitness(ppl[i]), i};
+        for (unsigned i = 0; i < ppl.size(); ++i) order[i] = {-fitness(ppl[i]), i};
         std::partial_sort(order.begin(), order.begin() + k, order.end());
 
         std::vector<unsigned> re(k);
@@ -141,7 +141,7 @@ protected:
 
     std::vector<unsigned> selection_roulette_wheel(population& ppl, unsigned k) {
         std::vector<std::pair<problem::obj_t, unsigned>> order(ppl.size());
-        for (unsigned i = 0; i < k; ++i) order[i] = {fitness(ppl[i]), i};
+        for (unsigned i = 0; i < ppl.size(); ++i) order[i] = {fitness(ppl[i]), i};
         problem::obj_t mn = 1e9, sm = 0;
         for (auto& [fit, idx] : order) mn = std::min(mn, fit);
         for (auto& [fit, idx] : order) fit -= mn, sm += fit;
@@ -163,8 +163,27 @@ protected:
     }
 
     std::vector<unsigned> selection_tournament(population& ppl, unsigned k) {
-        // TODO
-        return selection_dummy(ppl, k);
+        std::vector<problem::obj_t> fit(ppl.size());
+        for (unsigned i = 0; i < ppl.size(); ++i) fit[i] = fitness(ppl[i]);
+
+        std::uniform_int_distribution<unsigned> dis(0, ppl.size() - 1);
+        std::uniform_real_distribution<float> dis01(0, 1);
+        auto choose1 = [&]() {
+            std::vector<unsigned> picks(tournament_k);
+            for (unsigned j = 0; j < tournament_k; ++j) picks[j] = dis(gen);
+            std::sort(picks.begin(), picks.end(), [&](unsigned a, unsigned b) {
+                return fit[a] > fit[b]; 
+            });
+
+            for (unsigned i = 0; i < picks.size() - 1; ++i) {
+                if (dis01(gen) < tournament_p) return picks[i];
+            }
+            return picks.back();
+        };
+
+        std::vector<unsigned> re(k);
+        for (unsigned i = 0; i < k; ++i) re[i] = choose1();
+        return re;
     }
 
 protected:
@@ -173,7 +192,28 @@ protected:
     void crossover_dummy(chromosome& a, chromosome& b) {}
 
     void crossover_pmx(chromosome& a, chromosome& b) {
-        // TODO
+        std::uniform_int_distribution<unsigned> dis(0, a.size() - 1);
+        unsigned l = dis(gen), r = dis(gen);
+        if (l > r) std::swap(l, r);
+
+        auto fill_rest = [&](chromosome& chr, const chromosome& oth, const chromosome& invoth) {
+            std::vector<bool> vst(chr.size(), false);
+            for (unsigned i = l; i <= r; ++i) vst[chr[i]] = true;
+            for (unsigned i = l; i <= r; ++i) {
+                if (vst[oth[i]]) continue;
+                unsigned cur = i;
+                while (l <= cur && cur <= r) cur = invoth[chr[cur]];
+                chr[cur] = oth[i];
+                vst[oth[i]] = true;
+            }
+            for (unsigned i = 0; i < chr.size(); ++i) if (!vst[oth[i]]) chr[i] = oth[i];
+        };
+
+        chromosome acopy = a;
+        chromosome inva(a.size()), invb(b.size());
+        for (unsigned i = 0; i < a.size(); ++i) inva[a[i]] = invb[b[i]] = i;
+        fill_rest(a, b, invb);
+        fill_rest(b, acopy, inva);
     }
 
     void crossover_ox(chromosome& a, chromosome& b) {
@@ -222,6 +262,52 @@ protected:
 
     void crossover_edge_recomb(chromosome& a, chromosome& b) {
         // TODO
+        auto recomb = [this](unsigned cur, const std::vector<std::vector<unsigned>>& adj) {
+            unsigned len = adj.size();
+            std::vector<bool> vst(len, false);
+            std::vector<unsigned> cnt(len, 0);
+            for (unsigned i = 0; i < len; ++i) cnt[i] = adj[i].size();
+
+            chromosome re(len);
+            for (unsigned i = 0; i < len; ++i) {
+                re[i] = cur;
+                vst[cur] = true;
+                std::vector<unsigned> cand;
+                for (auto nxt : adj[cur]) if (!vst[nxt]) --cnt[nxt], cand.push_back(nxt);
+                
+                if (cand.empty()) {
+                    std::vector<unsigned> un;
+                    for (unsigned j = 0; j < len; ++j) if (!vst[i]) un.push_back(i);
+                    cur = std::uniform_int_distribution<unsigned>(0, un.size() - 1)(gen);
+                }
+                else {
+                    std::sort(cand.begin(), cand.end(), [&](unsigned a, unsigned b) {
+                        return cnt[a] < cnt[b];
+                    });
+                    while (cnt[cand.front()] != cnt[cand.back()]) cand.pop_back();
+                    cur = cand[std::uniform_int_distribution<unsigned>(0, cand.size() - 1)(gen)];
+                }
+            }
+            return re;
+        };
+
+        unsigned len = a.size();
+        std::vector<std::vector<unsigned>> adj(len);
+        for (unsigned i = 0; i < len; ++i) {
+            unsigned n1 = a[(i + 1) % len], n2 = a[(i + len - 1) % len];
+            adj[a[i]].push_back(n1);
+            adj[a[i]].push_back(n2);
+        }
+        for (unsigned i = 0; i < len; ++i) {
+            unsigned n1 = a[(i + 1) % len], n2 = a[(i + len - 1) % len];
+            auto& vec = adj[a[i]];
+            if (n1 != vec.front() && n1 != vec[1]) vec.push_back(n1);
+            if (n2 != vec.front() && n2 != vec[1]) vec.push_back(n2);
+        }
+
+        unsigned x = std::uniform_int_distribution<unsigned>(0, len - 1)(gen);
+        unsigned y = (x + std::uniform_int_distribution<unsigned>(0, len - 2)(gen)) % len;
+        a = recomb(x, adj), b = recomb(y, adj);
     }
 
 protected:
