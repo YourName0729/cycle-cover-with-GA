@@ -261,7 +261,6 @@ protected:
     }
 
     void crossover_edge_recomb(chromosome& a, chromosome& b) {
-        // TODO
         auto recomb = [this](unsigned cur, const std::vector<std::vector<unsigned>>& adj) {
             unsigned len = adj.size();
             std::vector<bool> vst(len, false);
