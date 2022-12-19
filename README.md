@@ -50,3 +50,45 @@ Test gaip
 make
 ./cycle_cover --constructor="name=min-deploy k=7 n=30 problem=min-max solver='name=gaip m=20 T=1000'"
 ```
+
+## GA parameters
+
+- name
+    - `elitism-ga`
+    - `standard-ga`
+    - `fast-ga`
+- selection
+    - `dummy`
+    - `random`
+    - `elitism`
+    - `roulette_wheel`
+    - `tournament`
+    - `elitism-ga` has no selection (default `elitism`)
+- replacement
+    - `dummy`
+    - `random`
+    - `elitism`
+    - `roulette_wheel`
+    - `tournament`
+    - `elitism-ga` has no replacement
+    - `fast-ga` has no replacement
+- crossover
+    - `dummy`
+    - `pmx`
+    - `ox`
+    - `cycle`
+    - `edge_recomb`
+- mutation
+    - `dummy`
+    - `insert`
+    - `swap`
+    - `inverse`
+    - `scramble`
+
+### Example
+
+```
+./cycle_cover --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=elitism-ga crossover=cycle mutation=swap m=10 T=100'"
+./cycle_cover --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=standard-ga selection=random replacement=elitism crossover=cycle mutation=inverse m=10 T=100'"
+./cycle_cover --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=fast-ga selection=random crossover=cycle mutation=inverse m=10 T=100'"
+```
