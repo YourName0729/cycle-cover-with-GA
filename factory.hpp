@@ -6,7 +6,6 @@
 #include "arg_container.hpp"
 #include "problem.hpp"
 #include "solver.hpp"
-#include "ga_int_prog.hpp"
 
 class ProblemFactory {
 public:
