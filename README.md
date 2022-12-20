@@ -44,19 +44,12 @@ make
 ./cycle_cover --constructor="name=min-deploy k=5 n=100 problem=min-max solver='name=min-max demo=0'"
 ```
 
-Test gaip
-
-```
-make
-./cycle_cover --constructor="name=min-deploy k=7 n=30 problem=min-max solver='name=gaip m=20 T=1000'"
-```
-
 ## GA parameters
 
 - name
     - `elitism-ga`
     - `standard-ga`
-    - `fast-ga`
+    - `ss-ga`
 - selection
     - `dummy`
     - `random`
@@ -91,4 +84,25 @@ make
 ./cycle_cover --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=elitism-ga crossover=cycle mutation=swap m=10 T=100'"
 ./cycle_cover --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=standard-ga selection=roulette_wheel replacement=elitism crossover=cycle mutation=inverse m=10 T=100'"
 ./cycle_cover --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=fast-ga selection=random crossover=cycle mutation=inverse m=10 T=100'"
+```
+
+## Grid Search
+
+- search all solvers to find the best one
+
+```
+name: standard-ga
+selection: random elitism roulette_wheel tournament
+replacement: elitism roulette_wheel tournament
+
+name: ss-ga
+selection: random elitism roulette_wheel tournament
+no replacement
+
+crossover: pmx ox cycle edge_recomb
+mutation: insert swap invert scramble
+```
+
+```
+./cycle_cover --constructor="name=grid-search k=30"
 ```

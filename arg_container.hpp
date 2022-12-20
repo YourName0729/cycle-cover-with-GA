@@ -34,7 +34,7 @@ public:
         return re;
     }
 
-private:
+public:
     typedef std::string key;
 	struct value {
 		std::string value;
@@ -46,6 +46,8 @@ private:
 public:
     std::map<key, value>& operator()() { return meta; }
     const std::map<key, value>& operator()() const { return meta; }
+
+	void insert(const std::string& k, const std::string& v) { meta[k].value = v; }
 
 private:
 	std::map<key, value> meta;

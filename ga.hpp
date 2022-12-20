@@ -2,6 +2,9 @@
 
 #include <memory>
 #include <functional>
+#include <fstream>
+#include <chrono>
+#include <iomanip>
 
 #include "solver.hpp"
 
@@ -56,10 +59,22 @@ public:
         assign("T", T);
         assign("parent_ratio", parent_ratio);
         assign("mutation_rate", mutation_rate);
+        assign("tournament_k", tournament_k);
+        assign("tournament_p", tournament_p);
+        assign("debug", debug);
     }
 
 protected:
-    using chromosome = std::vector<unsigned>;
+    class chromosome : public std::vector<unsigned> {
+    public:
+        using std::vector<unsigned>::vector;
+
+        friend std::ostream& operator<<(std::ostream& out, const GeneticAlgorithm::chromosome& chr) {
+            for (auto v : chr) out << v << ' ';
+            return out;
+        }
+    };
+    // using chromosome = std::vector<unsigned>;
     using population = std::vector<chromosome>;
 
     using func_selection = std::function<std::vector<unsigned>(population&, unsigned)>;
@@ -107,8 +122,75 @@ protected:
 
 public:
     virtual solution solve(const problem& ins) {
-        return solution();
+        this->ins = &ins;
+        auto pool = initialize_pool();
+        unsigned parent_size = m * parent_ratio;
+        pool.reserve(m + parent_size);
+
+        auto best_chr = pool[0];
+        problem::obj_t best_fit = fitness(best_chr);
+
+        // record stats
+        bool record = false;
+        if (meta.find("save") != meta.end()) record = true;
+        std::ofstream fout;
+        unsigned block = T;
+        std::chrono::steady_clock::time_point begin;
+        if (record) {
+            fout.open(meta["save"]);
+            fout << std::fixed;
+            begin = std::chrono::steady_clock::now();
+            block = 1000;
+            assign("block", block);
+        }
+
+        auto update_best = [&](unsigned t) {
+            if (t % block == 0) {
+                problem::obj_t mx = -1e9, sm = 0, mn = 1e9;
+                for (auto& chr : pool) {
+                    problem::obj_t nfit = fitness(chr);
+                    if (record) mx = std::max(mx, nfit), sm += nfit, mn = std::min(mn, nfit);
+                    if (best_fit < nfit) best_chr = chr, best_fit = nfit;
+                }
+
+                auto end = std::chrono::steady_clock::now();
+
+                fout << "T=" << T - t << ' ';
+                fout << "t=" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << ' ';
+                fout << "best=" << best_fit << ' ';
+                fout << "mn=" << mn << ' ';
+                fout << "avg=" << sm / m << ' ';
+                fout << "mx=" << mx << '\n';
+            }
+            else {
+                for (auto& chr : pool) {
+                    problem::obj_t nfit = fitness(chr);
+                    if (best_fit < nfit) best_chr = chr, best_fit = nfit;
+                }
+            }
+            if (debug) {
+                std::cout << T - t << '\n';
+                for (auto& chr : pool) {
+                    std::cout << chr << ": " << fitness(chr) << '\n';
+                }
+            }
+        };
+
+        update_best(T);
+        unsigned t = T - 1;
+        while (t--) {
+            generation(pool, best_chr, best_fit, parent_size);
+
+            update_best(t);
+        }
+
+        if (record) fout.close();
+
+        return decode(best_chr);
     }
+
+protected:
+    virtual void generation(population& pool, chromosome& best_chr, problem::obj_t& best_fit, unsigned parent_size) {}
 
 protected:
     // selections
@@ -170,9 +252,9 @@ protected:
         std::uniform_real_distribution<float> dis01(0, 1);
         auto choose1 = [&]() {
             std::vector<unsigned> picks(tournament_k);
-            for (unsigned j = 0; j < tournament_k; ++j) picks[j] = dis(gen);
+            for (unsigned i = 0; i < tournament_k; ++i) picks[i] = dis(gen);
             std::sort(picks.begin(), picks.end(), [&](unsigned a, unsigned b) {
-                return fit[a] > fit[b]; 
+                return fit[a] > fit[b];
             });
 
             for (unsigned i = 0; i < picks.size() - 1; ++i) {
@@ -357,13 +439,14 @@ protected:
     unsigned m = 100; // population
     unsigned T = 500; // # of iterations
 
-    float parent_ratio = 0.75; // ratio of population being parents
-    float mutation_rate = 0.5;
+    float parent_ratio = 0.6; // ratio of population being parents
+    float mutation_rate = 0.75;
 
-    unsigned tournament_k = 3;
-    unsigned tournament_p = 0.9;
+    unsigned tournament_k = 5;
+    unsigned tournament_p = 0.75;
 
     bool demo = false;
+    bool debug = false;
 };
 
 class ElitismGA : public GeneticAlgorithm {
@@ -373,47 +456,27 @@ class ElitismGA : public GeneticAlgorithm {
     */ 
 public:
     ElitismGA(const std::string& args = "") : GeneticAlgorithm("name=elitism-ga " + args) {
-        if (meta.find("selection") == meta.end()) selection = std::bind(&ElitismGA::selection_elitism , this, std::placeholders::_1, std::placeholders::_2);
-    }
-
-public:
-    virtual solution solve(const problem& ins) override {
-        this->ins = &ins;
-        auto pool = initialize_pool();
-        unsigned elite_size = m * elite_rate;
-        auto best_chr = pool[0];
-        problem::obj_t best_fit = fitness(best_chr);
-        
-        unsigned t = T - 1;
-        while (t--) {
-            auto elite = selection(pool, elite_size);
-            std::sort(elite.begin(), elite.end());
-            for (unsigned i = 0; i < elite_size; ++i) pool[i] = pool[elite[i]];
-            for (unsigned i = elite_size; i < m; ++i) pool[i] = pool[i - elite_size];
-            
-            std::shuffle(pool.begin() + elite_size, pool.end(), gen);
-            for (unsigned i = elite_size; i + 1 < m; i += 2) {
-                crossover(pool[i], pool[i + 1]);
-            }
-
-            std::uniform_real_distribution<float> dis01(0, 1);
-            for (unsigned i = elite_size; i < m; ++i) {
-                if (dis01(gen) < mutation_rate)
-                    mutation(pool[i]);
-            }
-
-            for (auto& chr : pool) {
-                problem::obj_t nfit = fitness(chr);
-                if (best_fit < nfit) best_chr = chr, best_fit = nfit;
-            }
-        }
-
-        return decode(best_chr);
+        selection = std::bind(&ElitismGA::selection_elitism , this, std::placeholders::_1, std::placeholders::_2);
     }
 
 protected:
+    virtual void generation(population& pool, chromosome& best_chr, problem::obj_t& best_fit, unsigned parent_size) override {
+        auto elite = selection(pool, parent_size);
+        std::sort(elite.begin(), elite.end());
+        for (unsigned i = 0; i < parent_size; ++i) std::swap(pool[i], pool[elite[i]]);
+        for (unsigned i = parent_size; i < m; ++i) pool[i] = pool[i - parent_size];
+        
+        std::shuffle(pool.begin() + parent_size, pool.end(), gen);
+        for (unsigned i = parent_size; i + 1 < m; i += 2) {
+            crossover(pool[i], pool[i + 1]);
+        }
 
-    float elite_rate = 0.1;
+        std::uniform_real_distribution<float> dis01(0, 1);
+        for (unsigned i = parent_size; i < m; ++i) {
+            if (dis01(gen) < mutation_rate)
+                mutation(pool[i]);
+        }
+    }
 };
 
 class StandardGA : public GeneticAlgorithm {
@@ -425,92 +488,87 @@ class StandardGA : public GeneticAlgorithm {
 public:
     StandardGA(const std::string& args = "") : GeneticAlgorithm("name=standard-ga " + args) {}
 
-public:
-    virtual solution solve(const problem& ins) override {
-        this->ins = &ins;
-        auto pool = initialize_pool();
-        unsigned parent_size = m * parent_ratio;
-        pool.reserve(m + parent_size);
+protected:
+    virtual void generation(population& pool, chromosome& best_chr, problem::obj_t& best_fit, unsigned parent_size) override {
+        // parent selection
+        auto parent = selection(pool, parent_size);
+        std::shuffle(parent.begin(), parent.end(), gen);
 
-        auto best_chr = pool[0];
-        problem::obj_t best_fit = fitness(best_chr);
+        // crossover
+        for (unsigned i = m; i + 1 < m + parent_size; i += 2) crossover(pool[i], pool[i + 1]);
 
-        unsigned t = T - 1;
-        while (t--) {
-            // parent selection
-            auto parent = selection(pool, parent_size);
-            for (auto v : parent) pool.push_back(pool[v]);
-
-            // crossover
-            std::shuffle(pool.begin() + m, pool.end(), gen);
-            for (unsigned i = m; i + 1 < m + parent_size; i += 2) crossover(pool[i], pool[i + 1]);
-
-            // mutation
-            std::uniform_real_distribution<float> dis01(0, 1);
-            for (unsigned i = m; i < m + parent_size; ++i) {
-                if (dis01(gen) < mutation_rate)
-                    mutation(pool[i]);
-            }
-
-            // replacement (survivor selection)
-            auto survivor_idx = replacement(pool, m);
-            population survivor(m);
-            for (unsigned i = 0; i < m; ++i) survivor[i] = pool[survivor_idx[i]];
-            pool = std::move(survivor);
-
-            for (auto& chr : pool) {
-                problem::obj_t nfit = fitness(chr);
-                if (best_fit < nfit) best_chr = chr, best_fit = nfit;
-            }
+        // mutation
+        std::uniform_real_distribution<float> dis01(0, 1);
+        for (unsigned i = m; i < m + parent_size; ++i) {
+            if (dis01(gen) < mutation_rate)
+                mutation(pool[i]);
         }
 
-        return decode(best_chr);
+        // replacement (survivor selection)
+        auto survivor_idx = replacement(pool, m);
+        std::shuffle(survivor_idx.begin(), survivor_idx.end(), gen);
+        population survivor(m);
+        for (unsigned i = 0; i < m; ++i) survivor[i] = pool[survivor_idx[i]];
+        pool = std::move(survivor);
     }
 };
 
-class FastGA : public GeneticAlgorithm {
+class SteadyStateGA : public GeneticAlgorithm {
     /*
         no complicated replacement 
         parent are directly replaced with children
         no copy of chromosome needed, so it's fast  ...?
     */
 public:
-    FastGA(const std::string& args = "") : GeneticAlgorithm("name=fast-ga " + args) {}
-
-public:
-    virtual solution solve(const problem& ins) override {
-        this->ins = &ins;
-        auto pool = initialize_pool();
-        unsigned parent_size = m * parent_ratio;
-        pool.reserve(m + parent_size);
-
-        auto best_chr = pool[0];
-        problem::obj_t best_fit = fitness(best_chr);
-
-        unsigned t = T - 1;
-        while (t--) {
-            // parent selection
-            auto parent = selection(pool, parent_size);
-
-            // crossover
-            for (unsigned i = 0; i + 1 < parent_size; i += 2) {
-                crossover(pool[parent[i]], pool[parent[i + 1]]);
-            }
-
-            // mutation
-            std::uniform_real_distribution<float> dis01(0, 1);
-            for (auto v : parent) {
-                if (dis01(gen) < mutation_rate)
-                    mutation(pool[v]);
-            }
-
-            for (auto& chr : pool) {
-                problem::obj_t nfit = fitness(chr);
-                if (best_fit < nfit) best_chr = chr, best_fit = nfit;
-            }
-        }
-
-        return decode(best_chr);
+    SteadyStateGA(const std::string& args = "") : GeneticAlgorithm("name=ss-ga " + args) {
+        assign("group_size", group_size);
     }
 
+protected:
+    virtual void generation(population& pool, chromosome& best_chr, problem::obj_t& best_fit, unsigned parent_size) override {
+        // parent selection
+        auto parent = selection(pool, parent_size);
+        std::shuffle(parent.begin(), parent.end(), gen);
+
+        // crossover
+        auto dis = [](const chromosome& a, const chromosome& b) {
+            unsigned re = 0;
+            for (unsigned i = 0; i < a.size(); ++i) re += std::min(a[i] - b[i], b[i] - a[i]);
+            return re;
+        };
+        auto wams = [&](const chromosome& chr) {
+            auto picks = selection_random(pool, group_size);
+            unsigned worst = pool.size();
+            problem::obj_t worst_fit = 1e9;
+            for (unsigned i = 0; i < m; i += group_size) {
+                unsigned nearest = i, nearest_dis = 1e9;
+                for (unsigned j = 0; j < group_size; ++j) {
+                    unsigned ndis = dis(pool[i + j], chr);
+                    if (ndis < nearest_dis) nearest = i + j, nearest_dis = ndis;
+                }
+                problem::obj_t nfit = fitness(pool[nearest]);
+                if (nfit < worst_fit) worst = nearest, worst_fit = nfit;
+            } 
+            if (worst_fit < fitness(chr)) {
+                pool[worst] = chr;
+            }
+
+        };
+        std::uniform_real_distribution<float> dis01(0, 1);
+        for (unsigned i = 0; i + 1 < parent_size; i += 2) {
+            chromosome c1 = pool[parent[i]], c2 = pool[parent[i + 1]];
+            crossover(c1, c2);
+
+            // mutation
+            if (dis01(gen) < mutation_rate)
+                mutation(c1);
+            if (dis01(gen) < mutation_rate)
+                mutation(c2);
+            wams(c1);
+            wams(c2);
+        }
+    }
+
+protected:
+    unsigned group_size = 20;
 };

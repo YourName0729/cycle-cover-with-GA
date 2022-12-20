@@ -33,7 +33,7 @@ public:
         else if (name == "min-max")     return std::make_shared<MMCCPSolver>(static_cast<std::string>(ac));
         else if (name == "elitism-ga")  return std::make_shared<ElitismGA>(static_cast<std::string>(ac));
         else if (name == "standard-ga") return std::make_shared<StandardGA>(static_cast<std::string>(ac));
-        else if (name == "fast-ga")     return std::make_shared<FastGA>(static_cast<std::string>(ac));
+        else if (name == "ss-ga")     return std::make_shared<SteadyStateGA>(static_cast<std::string>(ac));
         else                            return std::make_shared<DummySolver>(static_cast<std::string>(ac));
     }
 

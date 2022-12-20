@@ -1,6 +1,7 @@
 #pragma once
 
 #include "constructor.hpp"
+#include "grid_search.hpp"
 
 class ConstructorFactory {
 public:
@@ -15,6 +16,7 @@ public:
         if (name == "dummy")           return std::make_shared<DummyConstructor>(static_cast<std::string>(ac));
         else if (name == "es")         return std::make_shared<EvolutionStrategy>(static_cast<std::string>(ac));
         else if (name == "min-deploy" ) return std::make_shared<InstanceMinDeploy>(static_cast<std::string>(ac));
+        else if (name == "grid-search") return std::make_shared<GridSearch>(static_cast<std::string>(ac));
         else                           return std::make_shared<DummyConstructor>(static_cast<std::string>(ac));
     }
 };

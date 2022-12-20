@@ -18,13 +18,12 @@ int main(int argc, char* argv[]) {
 	}
 
 
-    // DummyConstructor con(con_args);
 	auto con = ConstructorFactory::produce(con_args);
     auto pr = con->construct();
 
-    std::cout << "problem: \n" << *pr.first << '\n';
-    std::cout << "solution: \n" << pr.second << '\n';
-	std::cout << "objective: " << pr.first->objective(pr.second) << '\n';
+    // std::cout << "problem: \n" << *pr.first << '\n';
+    // std::cout << "solution: \n" << pr.second << '\n';
+	// std::cout << "objective: " << pr.first->objective(pr.second) << '\n';
 
     return 0;
 }
