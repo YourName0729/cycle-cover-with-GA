@@ -450,10 +450,15 @@ public:
     }
 
     virtual solution solve(const problem& ins) override {
-        if ( ! demo ) std::cout.setstate(std::ios_base::failbit);
+        
         solution best ;
 
-        float lb = 0, rb = 3600 ;
+        float lb = 0, rb = 0 ;
+        for ( unsigned i = 0 ; i < ins().size() ; i++ )
+            for ( unsigned j = i+1 ; j < ins().size() ; j++ )
+                rb += ins()(i,j) ;
+        std::cout << rb << "\n" ;
+
         auto minB = rb ;
         auto tar = ins.get_k() ;
         while ( rb-lb > 1e-5 ) {
@@ -466,20 +471,25 @@ public:
             auto sol = mccpsolver.solve(mccp_ins) ;
             auto maxB = mccp_ins.max_cost(sol) ;
             if (  mccp_ins.objective(sol) <= tar ) {
-                rb = mid-1 ;
+                if ( mid > maxB*2 ) // for faster search 
+                    rb = maxB*2 ;
+                else 
+                    rb = mid-1 ;
                 if ( minB > maxB ) minB = maxB, best = sol ;
             }
             else {
                 lb = mid+1 ;
             }
 
-            std::cout << "tour budget B = " << std::setw(8) << mid ;
-            std::cout << " actual maximum cost = " << std::setw(8) << maxB  << " need " << std::setw(2) <<  mccp_ins.objective(sol) << " cycles "  ;
-            if ( mccp_ins.objective(sol) <= tar ) std::cout << ", decrease budget B \n" ;
-            else std::cout << ", increase budget B \n" ;
+            if ( demo ) {
+                std::cout << "tour budget B = " << std::setw(8) << mid ;
+                std::cout << " actual maximum cost = " << std::setw(8) << maxB  << " need " << std::setw(2) <<  mccp_ins.objective(sol) << " cycles "  ;
+                if ( mccp_ins.objective(sol) <= tar ) std::cout << ", decrease budget B \n" ;
+                else std::cout << ", increase budget B \n" ;
+            }
         }
 
-        std::cout.clear();
+
         return best;
     }
 
