@@ -57,6 +57,7 @@ public:
 
         assign("m", m);
         assign("T", T);
+        assign("repeat", repeat);
         assign("parent_ratio", parent_ratio);
         assign("mutation_rate", mutation_rate);
         assign("tournament_k", tournament_k);
@@ -120,9 +121,24 @@ protected:
         return sol;
     }
 
+protected:
+    virtual void generation(population& pool, chromosome& best_chr, problem::obj_t& best_fit, unsigned parent_size) {}
+
 public:
     virtual solution solve(const problem& ins) {
         this->ins = &ins;
+
+        solution best = solve_single(ins);
+        unsigned r = repeat;
+        while (r--) {
+            auto sol = solve_single(ins);
+            if (ins.objective(sol) < ins.objective(best)) best = sol;
+        }
+        return best;
+    }
+
+protected:
+    virtual solution solve_single(const problem& ins) {
         auto pool = initialize_pool();
         unsigned parent_size = m * parent_ratio;
         pool.reserve(m + parent_size);
@@ -188,9 +204,6 @@ public:
 
         return decode(best_chr);
     }
-
-protected:
-    virtual void generation(population& pool, chromosome& best_chr, problem::obj_t& best_fit, unsigned parent_size) {}
 
 protected:
     // selections
@@ -438,6 +451,7 @@ protected:
 
     unsigned m = 100; // population
     unsigned T = 500; // # of iterations
+    unsigned repeat = 1; // repeat multiple times and choose the best
 
     float parent_ratio = 0.6; // ratio of population being parents
     float mutation_rate = 0.75;
