@@ -103,6 +103,38 @@ public:
     }
 };
 
+class MinMaxDisProblem : public problem {
+public:
+    MinMaxDisProblem(const graph<obj_t>& gr, unsigned k): problem(gr, k) {}
+
+public:
+    virtual obj_t objective(const solution& sol) const override {
+        std::vector<obj_t> cycs;
+        for (auto& cyc : sol) {
+            obj_t sm = 0;
+            if (cyc.empty()) continue;
+            for (unsigned i = 0; i < cyc.size() - 1; ++i) {
+                sm += g(cyc[i], cyc[i + 1]);
+            }
+            sm += g(cyc.front(), cyc.back());
+            cycs.push_back(sm);
+        }
+        obj_t mx = 0;
+        for (auto v : cycs) mx = std::max(mx, v);
+        obj_t re = 0;
+        for (auto v : cycs) re += mx - v;
+        return mx + re / k;
+    }
+
+    virtual bool feasible(const solution& sol) const override {
+        if (sol.size() > k) return false;
+        for (auto& cyc : sol) {
+            if (cyc.empty()) continue;
+            for (auto v : cyc) if (v >= g.size()) return false;
+        }
+        return true;
+    }
+};
 
 class MinCycleProblem : public problem {
 public:
