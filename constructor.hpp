@@ -63,7 +63,7 @@ protected:
 
 class EvolutionStrategy : public DummyConstructor {
 public:
-    EvolutionStrategy(const std::string& args = ""): DummyConstructor("name=es " + args), sigma_pos(50), sigma_dat(0.05), a(0.85), G(10) {
+    EvolutionStrategy(const std::string& args = ""): DummyConstructor("name=es " + args), sigma_pos(50), sigma_dat(0.05), a(0.85), G(10), mu(10), lambda(70) {
         if (meta.find("sigma_pos") != meta.end()) sigma_pos = static_cast<float>(meta["sigma_pos"]);
         if (meta.find("sigma_dat") != meta.end()) sigma_dat = static_cast<float>(meta["sigma_dat"]);
         if (meta.find("sigma") != meta.end()) {
@@ -77,6 +77,8 @@ public:
         if (meta.find("data_lb") != meta.end())    data_lb = static_cast<float>(meta["data_lb"]);
         if (meta.find("trans_rate") != meta.end()) trans_rate = static_cast<float>(meta["trans_rate"]);
         if (meta.find("fly_speed") != meta.end())  fly_speed = static_cast<float>(meta["fly_speed"]);
+        if (meta.find("mu") != meta.end()) mu = static_cast<float>(meta["mu"]);
+        if (meta.find("lambda") != meta.end())  lambda = static_cast<float>(meta["lambda"]);
         if (meta.find("n") == meta.end()) n = std::uniform_int_distribution<unsigned>(100, 500)(gen);
 
         if (meta.find("demo") != meta.end())  demo = true;
@@ -90,38 +92,59 @@ public:
     virtual std::pair<std::shared_ptr<problem>, solution> construct() override {
         // std::cout << "es!\n";
         unsigned t = T - 1;
-        std::string p_name = property("problem");
 
-        // MinSumProblem best_p(generate(n), k);
-        auto best_ins = initialze();
+        std::string p_name = property("problem");
+        std::uniform_int_distribution<int> dis_mu(0, mu-1) ;
+
+        std::vector<instance> population ;
+        for ( unsigned i = 0 ; i < mu ; i++ ) population.push_back(initialze()) ;
+
+        auto best_ins = population[0] ;
         auto init_p = ProblemFactory::produce(p_name, generate(best_ins), k);
         solution best_s = solv->solve(*init_p);
-        problem::obj_t mx = init_p->objective(best_s);
-        if (demo) std::cout << "initial mx = " << mx << '\n';
+        problem::obj_t target = init_p->objective(mmccpSolver.solve(*init_p))/init_p->objective(best_s) ;
+    
+        if (demo) std::cout << "initial target = " << target << '\n';
 
         unsigned Gs = 0;
+       
         while (t--) {
-            auto ch = evolve(best_ins);
-            auto p = ProblemFactory::produce(p_name, generate(ch), k);
-            solution s = solv->solve(*p);
-            // std::cout << "sol: \n";
-            // for (auto& cyc : s) {
-            //     for (auto v : cyc) 
-            //         std::cout << v << ' ';
-            //     std::cout << '\n';
-            // }
-            problem::obj_t nmx = p->objective(s);
-            if (demo) {
-                if (nmx > mx) std::cout << "better! " << nmx << '\n';
-                else std::cout << "worse... " << nmx << '\n';
+            std::vector<instance> child ;
+            for ( unsigned i = 0 ; i < lambda ; i++ ) {
+                child.push_back( evolve(population[dis_mu(gen)]) ) ;
             }
-            if (nmx > mx) best_ins = ch, best_s = s, mx = nmx, ++Gs;
+
+            population.insert(population.end(), child.begin(), child.end()) ;
+
+            std::vector<std::pair<problem::obj_t, unsigned>> order(mu+lambda);
+            for ( unsigned i = 0 ; i < order.size() ; i++ ) {
+                auto p = ProblemFactory::produce(p_name, generate(population[i]), k);
+                order[i] = {p->objective(mmccpSolver.solve(*p))/p->objective(solv->solve(*p)),i} ;
+            }
+
+            std::sort(order.begin(), order.end() ) ;
+
+            std::vector<instance> fittest_population(mu) ;
+            for ( unsigned i = 0 ; i < mu ; i++ ) fittest_population[i] = population[order[i].second] ;
+
+            auto p = ProblemFactory::produce(p_name, generate(population[order[0].second]), k);
+            problem::obj_t nmx = order[0].first ;
+     
+            if (demo) {
+                std::cout << "current best is : " << nmx << '\n' ;
+                if (nmx < target) std::cout << "better! " << target << '\n';
+                else std::cout << "worse... " << target << '\n';
+            }
+            if (nmx < target) best_ins = population[order[0].second], target = nmx, best_s = solv->solve(*p), ++Gs;
             
             if (t % G == 0) {
                 if (5 * Gs > G) sigma_pos /= a, sigma_dat /= a;
                 else if (5 * Gs < G) sigma_pos *= a, sigma_dat *= a;
                 Gs = 0;
             }
+
+            
+            population = fittest_population ;
         }
         return {ProblemFactory::produce(property("problem"), generate(best_ins), k), best_s};
     }
@@ -166,12 +189,13 @@ protected:
 protected:
     float sigma_pos, sigma_dat, a;
     unsigned G;
-
+    unsigned mu, lambda ;
     float pos_lb = 0.f, pos_ub = 5000.f;
     float data_lb = 5.f, data_ub = 10.f;
     float trans_rate = 1.f;
     float fly_speed = 10.f;
 
+    MMCCPSolver mmccpSolver ;
     bool demo = false;
 };
 
@@ -207,35 +231,3 @@ protected:
     }
 };
 
-
-class MCCPConstructor : public DummyConstructor {
-public:
-    MCCPConstructor(const std::string& args = ""): DummyConstructor("name=mccp " + args) {
-        T = 1;
-    }
-
-protected:
-    virtual problem::graph_t generate(unsigned n) override {
-    
-        std::vector<std::pair<problem::obj_t, problem::obj_t>> pos;
-        std::vector<problem::obj_t> data;
-        problem::obj_t trans_rate = 1.f;
-        problem::obj_t fly_speed = 10.f;
-
-        std::uniform_real_distribution<problem::obj_t> dis_pos(0, 5000), dis_data(5, 10);
-        for (unsigned i = 0; i < n; ++i) {
-            pos.push_back({dis_pos(gen), dis_pos(gen)});
-            data.push_back(dis_data(gen));
-        }
-
-        problem::graph_t g(n);
-        for (unsigned i = 0; i < n; ++i) {
-            for (unsigned j = 0; j < n; ++j) {
-                problem::obj_t dx = pos[i].first - pos[j].first;
-                problem::obj_t dy = pos[i].second - pos[j].second;
-                g(i, j) = (data[i] + data[j]) / trans_rate / 2.f + std::sqrt(dx * dx + dy * dy) / fly_speed;
-            }
-        }
-        return g;
-    }
-};
