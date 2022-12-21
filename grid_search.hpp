@@ -25,6 +25,8 @@ public:
         if (meta.find("ins_size") != meta.end()) ins_size = static_cast<unsigned>(meta["ins_size"]);
         if (meta.find("thread_size") != meta.end()) thread_size = static_cast<unsigned>(meta["thread_size"]);
         if (meta.find("demo") != meta.end()) demo = true;
+        if (meta.find("problem") != meta.end()) pname = meta["problem"].value;
+        if (meta.find("dir") != meta.end()) dir = meta["dir"].value;
     }
 
 protected:
@@ -32,7 +34,7 @@ protected:
         std::vector<std::shared_ptr<problem>> inss(ins_size);
         for (unsigned i = 0; i < ins_size; ++i) {
             unsigned n = (ins_size < 2)? 100 : 100 + i * (500 - 100) / (ins_size - 1);
-            inss[i] = ProblemFactory::produce("min-max", generate(n), k);
+            inss[i] = ProblemFactory::produce(pname, generate(n), k);
         }
         std::deque<std::thread> thrs;
         auto args = solver_args();
@@ -67,12 +69,11 @@ protected:
         std::vector<std::string> crossovers = {"cycle", "edge_recomb", "pmx", "ox"};
         std::vector<std::string> mutations = {"insert", "inverse", "scramble", "swap"};
         
-
         ac.insert("m", "100");
         ac.insert("T", "30000");
         ac.insert("block", "100");
 
-        // ac.insert("name", "ss-ga");
+        ac.insert("name", "ss-ga");
         // std::string s = "tournament", c = "edge_recomb", m = "scramble";
         // ac.insert("selection", s);
         // ac.insert("crossover", c);
@@ -85,7 +86,7 @@ protected:
             ac.insert("selection", s);
             ac.insert("crossover", c);
             ac.insert("mutation", m);
-            ac.insert("save", "data/ss/" + s + "_" + c + "_" + m);
+            ac.insert("save", dir + "/ss/" + s + "_" + c + "_" + m);
             re.push_back(ac);
         }
 
@@ -95,7 +96,7 @@ protected:
             ac.insert("replacement", r);
             ac.insert("crossover", c);
             ac.insert("mutation", m);
-            ac.insert("save", "data/standard/" + s + "_" + r + "_" + c + "_" + m);
+            ac.insert("save", dir + "/standard/" + s + "_" + r + "_" + c + "_" + m);
             re.push_back(ac);
         }
         return re;
@@ -105,4 +106,7 @@ protected:
     unsigned ins_size = 10;
     unsigned thread_size = 10;
     bool demo = false;
+
+    std::string pname = "min-max";
+    std::string dir = "data";
 };

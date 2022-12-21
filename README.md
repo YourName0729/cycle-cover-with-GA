@@ -81,9 +81,9 @@ make
 ### Example
 
 ```
-./cycle_cover --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=elitism-ga crossover=cycle mutation=swap m=10 T=100'"
-./cycle_cover --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=standard-ga selection=roulette_wheel replacement=elitism crossover=cycle mutation=inverse m=10 T=100'"
-./cycle_cover --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=fast-ga selection=random crossover=cycle mutation=inverse m=10 T=100'"
+./cycle_cover --result --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=elitism-ga crossover=cycle mutation=swap m=10 T=100'"
+./cycle_cover --result --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=standard-ga selection=roulette_wheel replacement=elitism crossover=cycle mutation=inverse m=10 T=100'"
+./cycle_cover --result --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=fast-ga selection=random crossover=cycle mutation=inverse m=10 T=100'"
 ```
 
 ## Grid Search
@@ -105,4 +105,17 @@ mutation: insert swap invert scramble
 
 ```
 ./cycle_cover --constructor="name=grid-search k=30 demo=1 thread_size=14"
+./cycle_cover --constructor="name=grid-search problem=min-max-dis dir=data/min-max-dis k=30 demo=1 thread_size=14"
+```
+
+### Result
+
+Top 5 solver
+
+```
+m=100 T=3000 block=100 name=ss selection=random crossover=edge_recomb mutation=swap
+m=100 T=3000 block=100 name=ss selection=elitism crossover=edge_recomb mutation=insert
+m=100 T=3000 block=100 name=ss selection=roulette_wheel crossover=edge_recomb mutation=swap
+m=100 T=3000 block=100 name=ss selection=random crossover=edge_recomb mutation=insert
+m=100 T=3000 block=100 name=standard selection=random crossover=ox mutation=swap replacement=elitism
 ```
