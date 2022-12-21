@@ -62,23 +62,24 @@ protected:
     std::vector<ArgContainer> solver_args() const {
         ArgContainer ac;
         std::vector<ArgContainer> re;
-        std::vector<std::string> crossovers = {"pmx", "ox", "cycle", "edge_recomb"};
-        std::vector<std::string> mutations = {"insert", "swap", "invert", "scramble"};
-        std::vector<std::string> selections = {"random", "elitism", "roulette_wheel", "tournament"};
-        std::vector<std::string> replacements = {"elitism", "roulette_wheel", "tournament"};
+        std::vector<std::string> selections = {"elitism", "tournament", "random", "roulette_wheel"};
+        std::vector<std::string> replacements = {"elitism", "tournament", "roulette_wheel"};
+        std::vector<std::string> crossovers = {"cycle", "edge_recomb", "pmx", "ox"};
+        std::vector<std::string> mutations = {"insert", "inverse", "scramble", "swap"};
+        
 
         ac.insert("m", "100");
         ac.insert("T", "30000");
         ac.insert("block", "100");
 
-        ac.insert("name", "ss-ga");
-        for (auto& s : selections) for (auto& c : crossovers) for (auto& m : mutations) {
-            ac.insert("selection", s);
-            ac.insert("crossover", c);
-            ac.insert("mutation", m);
-            ac.insert("save", "data/standard_" + s + "_" + c + "_" + m);
-            re.push_back(ac);
-        }
+        // ac.insert("name", "ss-ga");
+        // for (auto& s : selections) for (auto& c : crossovers) for (auto& m : mutations) {
+        //     ac.insert("selection", s);
+        //     ac.insert("crossover", c);
+        //     ac.insert("mutation", m);
+        //     ac.insert("save", "data/ss/" + s + "_" + c + "_" + m);
+        //     re.push_back(ac);
+        // }
 
         ac.insert("name", "standard-ga");
         for (auto& s : selections) for (auto& r : replacements) for (auto& c : crossovers) for (auto& m : mutations) {
@@ -86,7 +87,7 @@ protected:
             ac.insert("replacement", r);
             ac.insert("crossover", c);
             ac.insert("mutation", m);
-            ac.insert("save", "data/standard_" + s + "_" + r + "_" + c + "_" + m);
+            ac.insert("save", "data/standard/" + s + "_" + r + "_" + c + "_" + m);
             re.push_back(ac);
         }
         return re;

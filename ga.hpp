@@ -14,7 +14,7 @@ public:
         if (meta.find("seed") != meta.end()) gen.seed(static_cast<unsigned int>(meta["seed"]));
         else gen.seed(std::random_device()());
         if (meta.find("demo") != meta.end()) demo = true;
-
+    
         if (meta.find("selection") != meta.end()) {
             std::string name = meta["selection"];
             if      (name == "dummy")          selection = std::bind(&GeneticAlgorithm::selection_dummy         , this, std::placeholders::_1, std::placeholders::_2);
@@ -491,13 +491,17 @@ public:
 protected:
     virtual void generation(population& pool, chromosome& best_chr, problem::obj_t& best_fit, unsigned parent_size) override {
         // parent selection
+        if (debug) std::cout << "selection" << std::endl;
         auto parent = selection(pool, parent_size);
         std::shuffle(parent.begin(), parent.end(), gen);
+        for (auto v : parent) pool.push_back(pool[v]);
 
         // crossover
+        if (debug) std::cout << "crossover" << std::endl;
         for (unsigned i = m; i + 1 < m + parent_size; i += 2) crossover(pool[i], pool[i + 1]);
 
         // mutation
+        if (debug) std::cout << "mutation" << std::endl;
         std::uniform_real_distribution<float> dis01(0, 1);
         for (unsigned i = m; i < m + parent_size; ++i) {
             if (dis01(gen) < mutation_rate)
@@ -505,8 +509,10 @@ protected:
         }
 
         // replacement (survivor selection)
+        if (debug) std::cout << "replacement" << std::endl;
         auto survivor_idx = replacement(pool, m);
-        std::shuffle(survivor_idx.begin(), survivor_idx.end(), gen);
+        // std::shuffle(survivor_idx.begin(), survivor_idx.end(), gen);
+        if (debug) std::cout << "update" << std::endl;
         population survivor(m);
         for (unsigned i = 0; i < m; ++i) survivor[i] = pool[survivor_idx[i]];
         pool = std::move(survivor);
