@@ -457,7 +457,6 @@ public:
         for ( unsigned i = 0 ; i < ins().size() ; i++ )
             for ( unsigned j = i+1 ; j < ins().size() ; j++ )
                 rb += ins()(i,j) ;
-        std::cout << rb << "\n" ;
 
         auto minB = rb ;
         auto tar = ins.get_k() ;
