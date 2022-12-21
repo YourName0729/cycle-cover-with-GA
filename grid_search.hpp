@@ -73,13 +73,21 @@ protected:
         ac.insert("block", "100");
 
         // ac.insert("name", "ss-ga");
-        // for (auto& s : selections) for (auto& c : crossovers) for (auto& m : mutations) {
-        //     ac.insert("selection", s);
-        //     ac.insert("crossover", c);
-        //     ac.insert("mutation", m);
-        //     ac.insert("save", "data/ss/" + s + "_" + c + "_" + m);
-        //     re.push_back(ac);
-        // }
+        // std::string s = "tournament", c = "edge_recomb", m = "scramble";
+        // ac.insert("selection", s);
+        // ac.insert("crossover", c);
+        // ac.insert("mutation", m);
+        // ac.insert("save", "data/ss/" + s + "_" + c + "_" + m);
+        // re.push_back(ac);
+        // return re;
+
+        for (auto& s : selections) for (auto& c : crossovers) for (auto& m : mutations) {
+            ac.insert("selection", s);
+            ac.insert("crossover", c);
+            ac.insert("mutation", m);
+            ac.insert("save", "data/ss/" + s + "_" + c + "_" + m);
+            re.push_back(ac);
+        }
 
         ac.insert("name", "standard-ga");
         for (auto& s : selections) for (auto& r : replacements) for (auto& c : crossovers) for (auto& m : mutations) {

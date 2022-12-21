@@ -104,5 +104,5 @@ mutation: insert swap invert scramble
 ```
 
 ```
-./cycle_cover --constructor="name=grid-search k=30"
+./cycle_cover --constructor="name=grid-search k=30 demo=1 thread_size=14"
 ```
