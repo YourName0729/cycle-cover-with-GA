@@ -113,9 +113,9 @@ mutation: insert swap invert scramble
 Top 5 solver
 
 ```
-m=100 T=3000 block=100 name=ss selection=random crossover=edge_recomb mutation=swap
-m=100 T=3000 block=100 name=ss selection=elitism crossover=edge_recomb mutation=insert
-m=100 T=3000 block=100 name=ss selection=roulette_wheel crossover=edge_recomb mutation=swap
-m=100 T=3000 block=100 name=ss selection=random crossover=edge_recomb mutation=insert
-m=100 T=3000 block=100 name=standard selection=random crossover=ox mutation=swap replacement=elitism
+m=100 T=30000 name=ss-ga selection=random crossover=edge_recomb mutation=swap
+m=100 T=30000 name=ss-ga selection=elitism crossover=edge_recomb mutation=insert
+m=100 T=30000 name=ss-ga selection=roulette_wheel crossover=edge_recomb mutation=swap
+m=100 T=30000 name=ss-ga selection=random crossover=edge_recomb mutation=insert
+m=100 T=30000 name=standard-ga selection=random crossover=ox mutation=swap replacement=elitism
 ```
