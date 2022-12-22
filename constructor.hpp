@@ -3,6 +3,7 @@
 #include "solver.hpp"
 #include "factory.hpp"
 
+
 class constructor : public agent {
 public:
     constructor(const std::string& args = ""): agent(args + " role=constructor") {}
@@ -20,6 +21,7 @@ public:
         if (meta.find("B") != meta.end()) B = static_cast<float>(meta["B"]);
         if (meta.find("seed") != meta.end()) gen.seed(static_cast<unsigned int>(meta["seed"]));
         else gen.seed(std::random_device()());
+
     }
 
 public:
@@ -51,6 +53,9 @@ protected:
         return g;
     }
 
+public :
+    unsigned repeat ;
+
 protected:
     // DummySolver solver;
     std::shared_ptr<solver> solv;
@@ -80,6 +85,9 @@ public:
         if (meta.find("mu") != meta.end()) mu = static_cast<float>(meta["mu"]);
         if (meta.find("lambda") != meta.end())  lambda = static_cast<float>(meta["lambda"]);
         if (meta.find("n") == meta.end()) n = std::uniform_int_distribution<unsigned>(100, 500)(gen);
+        
+        if (meta.find("repeat") != meta.end()) repeat = static_cast<unsigned>(meta["repeat"]);
+        else repeat = 1 ;
 
         if (meta.find("demo") != meta.end())  demo = true;
     }
@@ -89,9 +97,13 @@ protected:
     using instance = std::pair<std::vector<Pos>, std::vector<Dat>>;
 
 public:
-    virtual std::pair<std::shared_ptr<problem>, solution> construct() override {
+
+
+    std::pair<std::shared_ptr<problem>, std::pair<solution, problem::obj_t> > run()  {
         // std::cout << "es!\n";
         unsigned t = T - 1;
+
+        
 
         std::string p_name = property("problem");
         std::uniform_int_distribution<int> dis_mu(0, mu-1) ;
@@ -119,7 +131,7 @@ public:
             std::vector<std::pair<problem::obj_t, unsigned>> order(mu+lambda);
             for ( unsigned i = 0 ; i < order.size() ; i++ ) {
                 auto p = ProblemFactory::produce(p_name, generate(population[i]), k);
-                order[i] = {p->objective(mmccpSolver.solve(*p))/p->objective(solv->solve(*p)),i} ;
+                order[i] = {-p->objective(mmccpSolver.solve(*p))/p->objective(solv->solve(*p)),i} ;
             }
 
             std::sort(order.begin(), order.end() ) ;
@@ -128,14 +140,14 @@ public:
             for ( unsigned i = 0 ; i < mu ; i++ ) fittest_population[i] = population[order[i].second] ;
 
             auto p = ProblemFactory::produce(p_name, generate(population[order[0].second]), k);
-            problem::obj_t nmx = order[0].first ;
+            problem::obj_t nmx = -order[0].first ;
      
             if (demo) {
                 std::cout << "current best is : " << nmx << '\n' ;
-                if (nmx < target) std::cout << "better! " << target << '\n';
+                if (nmx > target) std::cout << "better! " << target << '\n';
                 else std::cout << "worse... " << target << '\n';
             }
-            if (nmx < target) best_ins = population[order[0].second], target = nmx, best_s = solv->solve(*p), ++Gs;
+            if (nmx > target) best_ins = population[order[0].second], target = nmx, best_s = solv->solve(*p), ++Gs;
             
             if (t % G == 0) {
                 if (5 * Gs > G) sigma_pos /= a, sigma_dat /= a;
@@ -145,8 +157,25 @@ public:
 
             
             population = fittest_population ;
+
+            out.close() ;
         }
-        return {ProblemFactory::produce(property("problem"), generate(best_ins), k), best_s};
+
+        
+        return {ProblemFactory::produce(property("problem"), generate(best_ins), k), {best_s, target} };
+    }
+
+
+    virtual std::pair<std::shared_ptr<problem>, solution> construct() override {
+        std::pair<std::shared_ptr<problem>, solution> best_res ;
+        problem::obj_t best_tar = 1.f ;
+        for ( unsigned i = 0 ; i < repeat ; i++ ) {
+            auto result = run() ;
+            std::cout << "best ratio = " << result.second.second << "\n" ;
+            if ( result.second.second < best_tar ) 
+                best_res = {result.first, result.second.first } ;
+        }
+        return best_res ;
     }
 
 protected:
@@ -185,6 +214,7 @@ protected:
         }
         return g;
     }
+
 
 protected:
     float sigma_pos, sigma_dat, a;
