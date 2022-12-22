@@ -26,7 +26,9 @@ int main(int argc, char* argv[]) {
 	if (result) {
 		std::cout << "problem: \n" << *pr.first << '\n';
 		std::cout << "solution: \n" << pr.second << '\n';
-		std::cout << "objective: " << pr.first->objective(pr.second) << '\n';	
+
+		MinMaxProblem ins((*pr.first)(), (*pr.first).get_k());
+		std::cout << "objective: " << ins.objective(pr.second) << '\n';	
 	}
 
     return 0;
