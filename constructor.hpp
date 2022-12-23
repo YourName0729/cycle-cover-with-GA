@@ -103,7 +103,7 @@ protected:
 public:
 
 
-    std::pair<std::shared_ptr<problem>, std::pair<solution, problem::obj_t> > construct_single( ESstats&stat )  {
+    std::pair<std::shared_ptr<problem>, std::pair<solution, problem::obj_t> > construct_single( ESstats&stat, unsigned run )  {
         // std::cout << "es!\n";
         unsigned t = T - 1;
 
@@ -141,7 +141,7 @@ public:
             string src = "data/min-max/es/" ;
             if (meta.find("file_loc") != meta.end() ) src = string(meta["file_loc"]) ;
             string fname = meta["save_solution"], sig_str = std::to_string(sigma) ;
-            fname = src+ "solution_"+"step="+sig_str.substr(0, sig_str.find(".")+3)+"_"+fname ;
+            fname = src+ "run="+ std::to_string(run) + "_solution_step="+sig_str.substr(0, sig_str.find(".")+3)+"_"+fname ;
             fout.open(fname);
             fout << std::fixed;
             begin = std::chrono::steady_clock::now();
@@ -258,7 +258,7 @@ public:
         problem::obj_t best_obj = 0.f ;
         for ( unsigned i = 0 ; i < repeat ; i++ ) {
             ESstats stat ;
-            auto result = construct_single(stat) ;
+            auto result = construct_single(stat, i) ;
             if ( result.second.second > best_obj ) 
                 best_res = {result.first, result.second.first } ;
             stats.push_back(stat) ;

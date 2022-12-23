@@ -33,6 +33,9 @@ Saving graph data :
 
 Saving ins & sols 
 ./cycle_cover --constructor="name=es T=1000 demo=0 sigma=0.1 mu=1 lambda=1 save_solution=test.txt n=10 k=2 problem=min-max solver='name=elitism-ga m=100 T=1'"
+
+Both
+./cycle_cover --constructor="name=es T=1000 demo=0 k=30 sigma=1 mu=1 lambda=1 repeat=5 save_graph=test.txt save_solution=test.txt n=10 k=2 problem=min-max solver='m=100 T=10000 name=ss-ga selection=random crossover=edge_recomb mutation=swap'"
 ```
 
 Test min-deploy instance
