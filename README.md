@@ -25,6 +25,12 @@ make
 ./cycle_cover --constructor="name=es T=100 demo=1 n=100 k=20 problem=min-max solver='name=trun-ga m=100 trun_k=0.5 T=200'"
 ```
 
+Save ES 
+
+```
+./cycle_cover --constructor="name=es T=1000 demo=0 sigma=1 mu=1 lambda=1 save_graph=test.txt n=10 k=2 problem=min-max solver='name=elitism-ga m=100 T=1'"
+```
+
 Test min-deploy instance
 ```
 make

@@ -2,7 +2,7 @@
 
 #include "solver.hpp"
 #include "factory.hpp"
-
+#include <fstream>
 
 class constructor : public agent {
 public:
@@ -68,12 +68,13 @@ protected:
 
 class EvolutionStrategy : public DummyConstructor {
 public:
-    EvolutionStrategy(const std::string& args = ""): DummyConstructor("name=es " + args), sigma_pos(50), sigma_dat(0.05), a(0.85), G(10), mu(10), lambda(70) {
+    EvolutionStrategy(const std::string& args = ""): DummyConstructor("name=es " + args), sigma_pos(5000), sigma_dat(5), sigma(1), a(0.85), G(10), mu(10), lambda(70) {
+        // default step size = 1 
         if (meta.find("sigma_pos") != meta.end()) sigma_pos = static_cast<float>(meta["sigma_pos"]);
         if (meta.find("sigma_dat") != meta.end()) sigma_dat = static_cast<float>(meta["sigma_dat"]);
         if (meta.find("sigma") != meta.end()) {
-            float d = static_cast<float>(meta["sigma"]);
-            sigma_pos *= d, sigma_dat *= d;
+            sigma = static_cast<float>(meta["sigma"]);
+            sigma_pos *= sigma, sigma_dat *= sigma;
         }
         if (meta.find("a") != meta.end()) a = static_cast<float>(meta["a"]);
         if (meta.find("pos_ub") != meta.end())     pos_ub = static_cast<float>(meta["pos_ub"]);
@@ -99,11 +100,11 @@ protected:
 public:
 
 
-    std::pair<std::shared_ptr<problem>, std::pair<solution, problem::obj_t> > run()  {
+    std::pair<std::shared_ptr<problem>, std::pair<solution, problem::obj_t> > construct_single()  {
         // std::cout << "es!\n";
         unsigned t = T - 1;
 
-        
+       
 
         std::string p_name = property("problem");
         std::uniform_int_distribution<int> dis_mu(0, mu-1) ;
@@ -113,20 +114,90 @@ public:
 
         auto best_ins = population[0] ;
         auto init_p = ProblemFactory::produce(p_name, generate(best_ins), k);
-        solution best_s = solv->solve(*init_p);
-        problem::obj_t target = init_p->objective(mmccpSolver.solve(*init_p))/init_p->objective(best_s) ;
-    
-        if (demo) std::cout << "initial target = " << target << '\n';
+        solution best_GAs_sol = solv->solve(*init_p);
+        solution best_solv4_sol = mmccpSolver.solve(*init_p) ;
+        problem::obj_t best_GAs_obj   = init_p->objective(best_GAs_sol) ; 
+        problem::obj_t best_solv4_obj = init_p->objective(best_solv4_sol) ; 
 
-        unsigned Gs = 0;
-       
-        while (t--) {
-            std::vector<instance> child ;
-            for ( unsigned i = 0 ; i < lambda ; i++ ) {
-                child.push_back( evolve(population[dis_mu(gen)]) ) ;
+    
+        // record stats
+        bool record_graph = false, record_solution = false ;
+        if (meta.find("save_graph") != meta.end()) record_graph = true;
+        std::ofstream fout;
+        unsigned block = T;
+        std::chrono::steady_clock::time_point begin;
+        if (record_graph) {
+            string src = "data/min-max/es/" ;
+            if (meta.find("file_loc") != meta.end() ) src = string(meta["file_loc"]) ;
+            string fname = meta["save_graph"], sig_str = std::to_string(sigma) ;
+            fname = src+"step="+sig_str.substr(0, sig_str.find(".")+3)+"_"+fname ;
+            fout.open(fname);
+            fout << std::fixed;
+            begin = std::chrono::steady_clock::now();
+            block = 100;
+            if (meta.find("block") != meta.end()) block = static_cast<unsigned>(meta["block"]); 
+        }
+
+
+        auto update_best = [&](unsigned t, unsigned & Gs ) {
+
+            bool success = false ;
+            for ( auto ins : population ) {
+                auto p = ProblemFactory::produce(p_name, generate(ins), k);
+                auto GAs_sol = solv->solve(*p) ;
+                auto solv4_sol = mmccpSolver.solve(*p) ;
+
+                auto GAs_obj   = p->objective(GAs_sol) ;
+                auto solv4_obj = p->objective(solv4_sol) ;
+                if ( solv4_obj/GAs_obj > best_solv4_obj/best_GAs_obj ) {
+                    best_GAs_obj = GAs_obj, best_solv4_obj = solv4_obj, best_ins = ins, best_GAs_sol = GAs_sol, best_solv4_sol = solv4_sol ;
+                    success = true ;
+                }
             }
 
-            population.insert(population.end(), child.begin(), child.end()) ;
+            if ( t != T && success ) Gs++ ;
+
+            if (t % G == 0) {
+                if (5 * Gs > G) sigma_pos /= a, sigma_dat /= a;
+                else if (5 * Gs < G) sigma_pos *= a, sigma_dat *= a;
+                Gs = 0;
+            }
+
+
+            if ( t % block == 0 ) {
+                auto end = std::chrono::steady_clock::now();
+
+                if ( record_graph ) {
+                    fout << "T=" << T-t << ' ';
+                    fout << "t=" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << ' ';
+                    fout << "best_ratio=" << best_solv4_obj/best_GAs_obj << ' ';
+                    fout << "best_solv4_obj=" << best_solv4_obj << ' ';
+                    fout << "best_GAs=" << best_GAs_obj << '\n';
+                }
+            }
+
+
+        };
+
+
+        // record initial condition 
+        
+        unsigned Gs = 0;
+       
+        update_best(T, Gs) ;
+
+        while (t--) {
+            std::vector<instance> offsprings ;
+            
+            auto child = population[0] ;
+            if ( mu > 1 ) child = crossover( population[dis_mu(gen)], population[dis_mu(gen)] ) ;
+    
+
+            for ( unsigned i = 0 ; i < lambda ; i++ ) {
+                offsprings.push_back( evolve(child) ) ;
+            }
+
+            population.insert(population.end(), offsprings.begin(), offsprings.end()) ;
 
             std::vector<std::pair<problem::obj_t, unsigned>> order(mu+lambda);
             for ( unsigned i = 0 ; i < order.size() ; i++ ) {
@@ -138,47 +209,47 @@ public:
 
             std::vector<instance> fittest_population(mu) ;
             for ( unsigned i = 0 ; i < mu ; i++ ) fittest_population[i] = population[order[i].second] ;
-
-            auto p = ProblemFactory::produce(p_name, generate(population[order[0].second]), k);
-            problem::obj_t nmx = -order[0].first ;
-     
-            if (demo) {
-                std::cout << "current best is : " << nmx << '\n' ;
-                if (nmx > target) std::cout << "better! " << target << '\n';
-                else std::cout << "worse... " << target << '\n';
-            }
-            if (nmx > target) best_ins = population[order[0].second], target = nmx, best_s = solv->solve(*p), ++Gs;
-            
-            if (t % G == 0) {
-                if (5 * Gs > G) sigma_pos /= a, sigma_dat /= a;
-                else if (5 * Gs < G) sigma_pos *= a, sigma_dat *= a;
-                Gs = 0;
-            }
-
-            
             population = fittest_population ;
 
-            out.close() ;
+            update_best(t, Gs) ;
+            
         }
 
+        if (record_graph||record_solution) fout.close();
+
         
-        return {ProblemFactory::produce(property("problem"), generate(best_ins), k), {best_s, target} };
+        return {ProblemFactory::produce(property("problem"), generate(best_ins), k), {best_GAs_sol, best_solv4_obj/best_GAs_obj} };
     }
 
 
+
+
     virtual std::pair<std::shared_ptr<problem>, solution> construct() override {
+
         std::pair<std::shared_ptr<problem>, solution> best_res ;
-        problem::obj_t best_tar = 1.f ;
+        problem::obj_t best_obj = 0.f ;
         for ( unsigned i = 0 ; i < repeat ; i++ ) {
-            auto result = run() ;
+            auto result = construct_single() ;
             std::cout << "best ratio = " << result.second.second << "\n" ;
-            if ( result.second.second < best_tar ) 
+            if ( result.second.second > best_obj ) 
                 best_res = {result.first, result.second.first } ;
         }
         return best_res ;
     }
 
 protected:
+
+    instance crossover( const instance &p1, const instance &p2 ) { // two parent for all var 
+        auto [pos1, dat1] = p1; 
+        auto [pos2, dat2] = p2; 
+        for (auto& [x1, y1] : pos1) for ( auto&[x2, y2] :pos2 ) {
+            x1 = (x1+x2)/2 ;
+            y1 = (y1+y2)/2 ;
+        }
+        for (auto& v1 : dat1) for ( auto& v2 : dat2 ) v1 = (v1+v2)/2 ;
+        return {pos1, dat1};
+    }
+
     virtual instance evolve(const instance& org) {
         std::normal_distribution<float> dis_pos(0, sigma_pos), dis_dat(0, sigma_dat);
         auto [pos, dat] = org;
@@ -217,11 +288,12 @@ protected:
 
 
 protected:
-    float sigma_pos, sigma_dat, a;
+    float sigma_pos, sigma_dat, sigma, a;
     unsigned G;
     unsigned mu, lambda ;
     float pos_lb = 0.f, pos_ub = 5000.f;
     float data_lb = 5.f, data_ub = 10.f;
+
     float trans_rate = 1.f;
     float fly_speed = 10.f;
 
