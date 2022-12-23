@@ -28,7 +28,11 @@ make
 Save ES 
 
 ```
+Saving graph data :
 ./cycle_cover --constructor="name=es T=1000 demo=0 sigma=1 mu=1 lambda=1 save_graph=test.txt n=10 k=2 problem=min-max solver='name=elitism-ga m=100 T=1'"
+
+Saving ins & sols 
+./cycle_cover --constructor="name=es T=1000 demo=0 sigma=0.1 mu=1 lambda=1 save_solution=test.txt n=10 k=2 problem=min-max solver='name=elitism-ga m=100 T=1'"
 ```
 
 Test min-deploy instance
