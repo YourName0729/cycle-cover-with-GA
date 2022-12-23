@@ -123,6 +123,7 @@ public:
         // record stats
         bool record_graph = false, record_solution = false ;
         if (meta.find("save_graph") != meta.end()) record_graph = true;
+        if (meta.find("save_solution") != meta.end()) record_solution = true;
         std::ofstream fout;
         unsigned block = T;
         std::chrono::steady_clock::time_point begin;
@@ -138,21 +139,36 @@ public:
             if (meta.find("block") != meta.end()) block = static_cast<unsigned>(meta["block"]); 
         }
 
+        if (record_solution) {
+            string src = "data/min-max/es/" ;
+            if (meta.find("file_loc") != meta.end() ) src = string(meta["file_loc"]) ;
+            string fname = meta["save_solution"], sig_str = std::to_string(sigma) ;
+            fname = src+ "solution_"+"step="+sig_str.substr(0, sig_str.find(".")+3)+"_"+fname ;
+            fout.open(fname);
+            fout << std::fixed;
+            begin = std::chrono::steady_clock::now();
+            block = 100;
+            if (meta.find("block") != meta.end()) block = static_cast<unsigned>(meta["block"]); 
+        }
 
-        auto update_best = [&](unsigned t, unsigned & Gs ) {
+
+
+        auto update_best = [&](unsigned t, unsigned & Gs, bool sorted = false ) {
 
             bool success = false ;
-            for ( auto ins : population ) {
-                auto p = ProblemFactory::produce(p_name, generate(ins), k);
+            for ( unsigned i = 0 ; i < population.size() ; i++ ) {
+                auto p = ProblemFactory::produce(p_name, generate(population[i]), k);
                 auto GAs_sol = solv->solve(*p) ;
                 auto solv4_sol = mmccpSolver.solve(*p) ;
 
                 auto GAs_obj   = p->objective(GAs_sol) ;
                 auto solv4_obj = p->objective(solv4_sol) ;
                 if ( solv4_obj/GAs_obj > best_solv4_obj/best_GAs_obj ) {
-                    best_GAs_obj = GAs_obj, best_solv4_obj = solv4_obj, best_ins = ins, best_GAs_sol = GAs_sol, best_solv4_sol = solv4_sol ;
+                    best_GAs_obj = GAs_obj, best_solv4_obj = solv4_obj, best_ins = population[i], best_GAs_sol = GAs_sol, best_solv4_sol = solv4_sol ;
                     success = true ;
                 }
+
+                if ( sorted ) break ;
             }
 
             if ( t != T && success ) Gs++ ;
@@ -173,6 +189,22 @@ public:
                     fout << "best_ratio=" << best_solv4_obj/best_GAs_obj << ' ';
                     fout << "best_solv4_obj=" << best_solv4_obj << ' ';
                     fout << "best_GAs=" << best_GAs_obj << '\n';
+                }
+
+
+                if ( record_solution ) {
+                    fout << "Generation : T=" << T-t << ' ';
+                    fout << "t=" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() <<  '\n';
+                    fout << "best_ratio=" << best_solv4_obj/best_GAs_obj << ' ';
+                    fout << "best_solv4_obj=" << best_solv4_obj << ' ';
+                    fout << "best_GAs=" << best_GAs_obj << '\n';
+
+                    fout << "best_instance= " << '\n';
+                    fout << *ProblemFactory::produce(p_name, generate(best_ins), k) ;
+                    fout << "best_GAs_solution " << "\n" ;
+                    fout << best_GAs_sol ;
+                    fout << "best_solv4_solution " << "\n" ;
+                    fout << best_solv4_sol << "\n\n" ;
                 }
             }
 
@@ -211,7 +243,7 @@ public:
             for ( unsigned i = 0 ; i < mu ; i++ ) fittest_population[i] = population[order[i].second] ;
             population = fittest_population ;
 
-            update_best(t, Gs) ;
+            update_best(t, Gs, true) ;
             
         }
 
