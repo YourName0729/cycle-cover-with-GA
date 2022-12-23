@@ -2,7 +2,10 @@
 
 #include "solver.hpp"
 #include "factory.hpp"
+#include "statistics.hpp"
 #include <fstream>
+
+
 
 class constructor : public agent {
 public:
@@ -100,7 +103,7 @@ protected:
 public:
 
 
-    std::pair<std::shared_ptr<problem>, std::pair<solution, problem::obj_t> > construct_single()  {
+    std::pair<std::shared_ptr<problem>, std::pair<solution, problem::obj_t> > construct_single( ESstats&stat )  {
         // std::cout << "es!\n";
         unsigned t = T - 1;
 
@@ -127,14 +130,9 @@ public:
         std::ofstream fout;
         unsigned block = T;
         std::chrono::steady_clock::time_point begin;
-        if (record_graph) {
-            string src = "data/min-max/es/" ;
-            if (meta.find("file_loc") != meta.end() ) src = string(meta["file_loc"]) ;
-            string fname = meta["save_graph"], sig_str = std::to_string(sigma) ;
-            fname = src+"step="+sig_str.substr(0, sig_str.find(".")+3)+"_"+fname ;
-            fout.open(fname);
-            fout << std::fixed;
-            begin = std::chrono::steady_clock::now();
+        begin = std::chrono::steady_clock::now();
+
+        if ( record_graph ) {
             block = 100;
             if (meta.find("block") != meta.end()) block = static_cast<unsigned>(meta["block"]); 
         }
@@ -184,11 +182,9 @@ public:
                 auto end = std::chrono::steady_clock::now();
 
                 if ( record_graph ) {
-                    fout << "T=" << T-t << ' ';
-                    fout << "t=" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << ' ';
-                    fout << "best_ratio=" << best_solv4_obj/best_GAs_obj << ' ';
-                    fout << "best_solv4_obj=" << best_solv4_obj << ' ';
-                    fout << "best_GAs=" << best_GAs_obj << '\n';
+                    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() ;
+                    stat.infos.push_back( ESdata(T-t, ms, best_solv4_obj/best_GAs_obj, best_solv4_obj, best_GAs_obj ) ) ;
+    
                 }
 
 
@@ -247,7 +243,7 @@ public:
             
         }
 
-        if (record_graph||record_solution) fout.close();
+        if (record_solution) fout.close();
 
         
         return {ProblemFactory::produce(property("problem"), generate(best_ins), k), {best_GAs_sol, best_solv4_obj/best_GAs_obj} };
@@ -257,15 +253,50 @@ public:
 
 
     virtual std::pair<std::shared_ptr<problem>, solution> construct() override {
-
+        std::vector<ESstats> stats ;
         std::pair<std::shared_ptr<problem>, solution> best_res ;
         problem::obj_t best_obj = 0.f ;
         for ( unsigned i = 0 ; i < repeat ; i++ ) {
-            auto result = construct_single() ;
-            std::cout << "best ratio = " << result.second.second << "\n" ;
+            ESstats stat ;
+            auto result = construct_single(stat) ;
             if ( result.second.second > best_obj ) 
                 best_res = {result.first, result.second.first } ;
+            stats.push_back(stat) ;
         }
+
+        // write file 
+
+
+        if (meta.find("save_graph") != meta.end()) {
+            std::ofstream fout;
+            string src = "data/min-max/es/" ;
+            if (meta.find("file_loc") != meta.end() ) src = string(meta["file_loc"]) ;
+            string fname = meta["save_graph"], sig_str = std::to_string(sigma) ;
+            fname = src+"step="+sig_str.substr(0, sig_str.find(".")+3)+"_"+fname ;
+            fout.open(fname);
+            fout << std::fixed ;
+
+            for ( unsigned i = 0 ; i < stats[0].infos.size() ; i++ ){
+                unsigned cycle = stats[0].infos[i].T ;
+                float avg_ms = 0.0, avg_best_r = 0.0, avg_best_solv4 = 0.0, avg_best_GAs = 0.0 ;
+                for ( unsigned j = 0 ; j < stats.size() ; j++ ) {
+                    avg_ms += stats[j].infos[i].t ;
+                    avg_best_r += stats[j].infos[i].best_ratio ;
+                    avg_best_solv4 += stats[j].infos[i].best_solv4 ;
+                    avg_best_GAs += stats[j].infos[i].best_GAs ;
+                }
+
+                fout << "T=" << cycle << ' ';
+                fout << "avg t=" << avg_ms/repeat << ' ';
+                fout << "avg best_ratio=" << avg_best_r/repeat << ' ';
+                fout << "avg best_solv4_obj=" << avg_best_solv4/repeat << ' ';
+                fout << "avg best_GAs=" << avg_best_GAs/repeat << '\n';
+            }
+           
+            fout.close() ;
+        }
+
+
         return best_res ;
     }
 
