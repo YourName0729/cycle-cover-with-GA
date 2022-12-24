@@ -93,7 +93,7 @@ protected:
     unsigned get_len() const { return get_n() + (*ins).get_k() - 1; }
     problem::obj_t fitness(const chromosome& chr) const { return -(*ins).objective(decode(chr)); }
 
-    population initialize_pool() {
+    virtual population initialize_pool() {
         auto random_chromosome = [&]() {
             chromosome chr;
             unsigned len = get_len();
@@ -129,7 +129,7 @@ public:
         this->ins = &ins;
 
         solution best = solve_single(ins);
-        unsigned r = repeat;
+        unsigned r = repeat - 1;
         while (r--) {
             auto sol = solve_single(ins);
             if (ins.objective(sol) < ins.objective(best)) best = sol;

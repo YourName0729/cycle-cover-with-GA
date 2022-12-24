@@ -14,6 +14,7 @@ Test GA
 ```
 make
 ./cycle_cover --constructor="T=1 problem=min-max solver='name=ga m=10 T=2'"
+./cycle_cover --constructor="min-deploy k=30 problem=min-max solver='name=tabu-ga m=10 T=2'"
 ```
 
 Test ES
@@ -97,6 +98,7 @@ make
 ./cycle_cover --result --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=elitism-ga crossover=cycle mutation=swap m=10 T=100'"
 ./cycle_cover --result --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=standard-ga selection=roulette_wheel replacement=elitism crossover=cycle mutation=inverse m=10 T=100'"
 ./cycle_cover --result --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=fast-ga selection=random crossover=cycle mutation=inverse m=10 T=100'"
+./cycle_cover  --constructor="name=min-deploy k=30 n=500 problem=min-max solver='name=tabu-ga selection=elitism crossover=edge_recomb mutation=insert m=100 T=30000 save=data/tabu_ga.txt block=50'"
 ```
 
 ## Grid Search

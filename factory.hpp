@@ -7,6 +7,7 @@
 #include "problem.hpp"
 #include "solver.hpp"
 #include "ga.hpp"
+#include "tabu_ga.hpp"
 
 class ProblemFactory {
 public:
@@ -35,6 +36,7 @@ public:
         else if (name == "elitism-ga")  return std::make_shared<ElitismGA>(static_cast<std::string>(ac));
         else if (name == "standard-ga") return std::make_shared<StandardGA>(static_cast<std::string>(ac));
         else if (name == "ss-ga")     return std::make_shared<SteadyStateGA>(static_cast<std::string>(ac));
+        else if (name == "tabu-ga")     return std::make_shared<TabuGA>(static_cast<std::string>(ac));
         else                            return std::make_shared<DummySolver>(static_cast<std::string>(ac));
     }
 
