@@ -56,7 +56,7 @@ def diversity(df, fname = '../figure/tabu/test.png'):
 
     # plot col_y
     fig, ax1 = plt.subplots()
-    y = df[col_y].to_numpy()
+    y = df[col_y].to_numpy() / 50 / 500
     y[0] = np.average(y[1:])
     ax1.set_xlabel(col_x)
     ax1.set_ylabel('Diversity')
@@ -81,9 +81,9 @@ def best_max_min_avg(df, fname):
     ax1.set_xlabel('Generation')
     ax1.set_ylabel('Fitness')
 
-    col_ys = ['best', 'mn', 'avg', 'mx']
+    col_ys = ['best', 'mx', 'avg', 'mn']
     clr_idxs = [0, 1, 2, 3]
-    lbs = ['Best', 'Min', 'Avg', 'Max']
+    lbs = ['Best', 'Max', 'Avg', 'Min']
     for col, clr_idx, lb in zip(col_ys, clr_idxs, lbs):
         # print(col, clr_idx, lb)
         y = df[col].to_numpy()
@@ -299,10 +299,10 @@ def main():
     # plot2y(df, 'wams_miss')
     pfx = '../figure/tabu/'
     # diversity(df, pfx + 'diversity.png')
-    # best_max_min_avg(df, pfx + 'bmma.png')
+    best_max_min_avg(df, pfx + 'bmma.png')
     # wams_miss(df, pfx + 'wams_miss.png')
     # tabu_hit(df, pfx + 'tabu_hit.png')
-    progress(df, pfx + 'progress.png')
+    # progress(df, pfx + 'progress.png')
 
     # wams_miss_adj(df, pfx + "wams_miss_adj.png")
 

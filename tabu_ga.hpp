@@ -30,6 +30,7 @@ protected:
                 vec.resize(len);
                 for (auto& v : vec) v = dis(gen);
             }
+            us.clear();
             // for (auto& vec : hvt) {
             //     std::copy(vec.begin(), vec.end(), std::ostream_iterator<std::size_t>(std::cout, "\t"));
             //     std::cout << "\n";
@@ -67,11 +68,16 @@ protected:
 
 public:
     virtual solution solve(const problem& ins) override {
+        tabu_hit = 0, tabu_miss = 0, tabu_new = 0;
+        wams_miss = 0;
+        diversity = 0;
+        chr_max = 0, chr_min = 0, chr_avg = 0;
+
         tbs.setHashTable(ins().size() + ins.get_k() - 1, gen);
         return GeneticAlgorithm::solve(ins);
     }
 
-     virtual solution solve_single(const problem& ins) override {
+    virtual solution solve_single(const problem& ins) override {
         auto pool = initialize_pool();
         unsigned parent_size = m * parent_ratio;
         pool.reserve(m + parent_size);
@@ -86,7 +92,7 @@ public:
         unsigned block = T;
         std::chrono::steady_clock::time_point begin;
         if (record) {
-            fout.open(meta["save"], std::fstream::app);
+            fout.open(meta["save"]);
             fout << std::fixed;
             begin = std::chrono::steady_clock::now();
             block = 1000;
@@ -209,26 +215,28 @@ public:
                     tabu_miss += !v1 + !v2;
                 } while (v1 && v2 && ++cnt < tabu_tol);
                 
-                if (cnt > tabu_tol) pool[parent[i]] = random_chromosome(), pool[parent[i + 1]] = random_chromosome(), tabu_new += 2;
+                if (cnt >= tabu_tol) pool[parent[i]] = random_chromosome(), pool[parent[i + 1]] = random_chromosome(), tabu_new += 2;
             }
 
             // mutation all
-            for (auto& chr : pool) {
-                unsigned cnt = 0;
-                chromosome cpy = chr;
-                while (!tbs.contains(cpy) && ++cnt < tabu_tol);
-                tabu_hit += cnt;
-                if (cnt > tabu_tol) {
-                    // almost all neighbor of chr is visited, replace chr with a random chromosome directly
-                    chr = random_chromosome();
-                    ++tabu_new;
-                }
-                else {
-                    ++tabu_miss;
-                    chr = std::move(cpy);
-                    tbs.insert(chr);
-                }
-            }
+            // for (auto& chr : pool) {
+            //     if (dis01(gen) > mutation_rate) continue;
+            //     unsigned cnt = 0;
+            //     chromosome cpy = chr;
+            //     mutation(cpy);
+            //     while (!tbs.contains(cpy) && ++cnt < tabu_tol) mutation(cpy);
+            //     tabu_hit += cnt;
+            //     if (cnt >= tabu_tol) {
+            //         // almost all neighbor of chr is visited, replace chr with a random chromosome directly
+            //         chr = random_chromosome();
+            //         ++tabu_new;
+            //     }
+            //     else {
+            //         ++tabu_miss;
+            //         chr = std::move(cpy);
+            //         tbs.insert(chr);
+            //     }
+            // }
 
             update_best(t);
             std::uniform_int_distribution<unsigned> dis_ppl(0, pool.size() - 1);

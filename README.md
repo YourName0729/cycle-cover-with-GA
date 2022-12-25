@@ -58,6 +58,11 @@ make
 ./cycle_cover --constructor="name=min-deploy k=5 n=100 problem=min-max solver='name=min-max demo=0'"
 ```
 
+Test Comparison
+```
+./cycle_cover --constructor="name=comparison"
+```
+
 ## GA parameters
 
 - name
