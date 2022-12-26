@@ -189,18 +189,25 @@ public:
 
 
                 if ( record_solution ) {
-                    fout << "Generation : T=" << T-t << ' ';
-                    fout << "t=" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() <<  '\n';
+                    fout << "T=" << T-t << ' ';
+                    fout << "t=" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() <<  ' ';
                     fout << "best_ratio=" << best_solv4_obj/best_GAs_obj << ' ';
                     fout << "best_solv4_obj=" << best_solv4_obj << ' ';
-                    fout << "best_GAs=" << best_GAs_obj << '\n';
+                    fout << "best_GAs=" << best_GAs_obj << ' ';
 
-                    fout << "best_instance= " << '\n';
-                    fout << *ProblemFactory::produce(p_name, generate(best_ins), k) ;
-                    fout << "best_GAs_solution " << "\n" ;
+                    auto [pos, dat] = best_ins ;
+                    fout << "best_instance=" << pos.size() << ' ';
+
+                    fout << "X=" ;
+                    for ( unsigned i = 0 ; i < pos.size() ; i++ )  fout << pos[i].first << ' ';
+                    fout << "Y=" ;
+                    for ( unsigned i = 0 ; i < pos.size() ; i++ )  fout << pos[i].second << ' ' ;
+                    fout << "data=" ;
+                    for ( unsigned i = 0 ; i < pos.size() ; i++ )  fout << dat[i] << ' ' ;
+                    fout << "best_GAs_solution=" ;
                     fout << best_GAs_sol ;
-                    fout << "best_solv4_solution " << "\n" ;
-                    fout << best_solv4_sol << "\n\n" ;
+                    fout << "best_solv4_solution=" ;
+                    fout << best_solv4_sol ;
                 }
             }
 
