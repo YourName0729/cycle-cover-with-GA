@@ -52,11 +52,12 @@ def get_df(dst):
                         Y += ele[j+1:j+n]
                         j += n
            
+
                         e = ele[j].split('=')[1]
                         data.append(e)
                         data += ele[j+1:j+n]
                         j += n
-                   
+                       
                         e = ele[j].split('=')[1]
                         for k in range(int(e)) :
                             i+=1 
@@ -111,8 +112,8 @@ def main():
         for name,df in dfs.items():
             index = [0,len(df.index)-1]
             for i in index :
-                plt.xlim(0,5000)
-                plt.ylim(0,5000)
+                plt.xlim(-50,5050)
+                plt.ylim(-50,5050)
            
                 X = [ float(x) for x in df['best_X'][i]]
                 Y = [ float(y) for y in df['best_Y'][i]]
@@ -150,8 +151,8 @@ def main():
   
             index = [0,len(df.index)-1]
             for i in index :
-                plt.xlim(0,5000)
-                plt.ylim(0,5000)
+                plt.xlim(-50,5050)
+                plt.ylim(-50,5050)
            
                 X = [ float(x) for x in df['best_X'][i]]
                 Y = [ float(y) for y in df['best_Y'][i]]
