@@ -168,9 +168,9 @@ def main():
 
        
                 if x == 'T' :
-                    plt.title('solv4 solution when T ='+ df['T'][i] )
+                    plt.title('approAlgNoNei solution when T ='+ df['T'][i] )
                 else : 
-                    plt.title('solv4 solution when t ='+ df['t'][i])
+                    plt.title('approAlgNoNei solution when t ='+ df['t'][i])
          
 
                 plt.xlabel('x-axis', fontsize=12)
@@ -188,7 +188,7 @@ def main():
     pfx = 'figure/min-max/es/solution/'
 
     save_GA(dfs, pfx + 'GA_solution', 'T')
-    save_solv4(dfs, pfx + 'solv4_solution', 't')
+    save_solv4(dfs, pfx + 'approAlgNoNei_solution', 't')
 
 
 if __name__ == '__main__':
