@@ -4,7 +4,7 @@
 #include "factory.hpp"
 #include "statistics.hpp"
 #include <fstream>
-
+#include <sstream>
 
 
 class constructor : public agent {
@@ -110,19 +110,25 @@ public:
        
 
         std::string p_name = property("problem");
+       
+
+
+        // record initial condition 
+        
         std::uniform_int_distribution<int> dis_mu(0, mu-1) ;
 
-        std::vector<instance> population ;
-        for ( unsigned i = 0 ; i < mu ; i++ ) population.push_back(initialze()) ;
-
-        auto best_ins = population[0] ;
-        auto init_p = ProblemFactory::produce(p_name, generate(best_ins), k);
-        solution best_GAs_sol = solv->solve(*init_p);
-        solution best_solv4_sol = mmccpSolver.solve(*init_p) ;
-        problem::obj_t best_GAs_obj   = init_p->objective(best_GAs_sol) ; 
-        problem::obj_t best_solv4_obj = init_p->objective(best_solv4_sol) ; 
-
+        std::vector<instance> population(mu) ;
     
+        instance best_ins ;
+        solution best_GAs_sol, best_solv4_sol ;
+        problem::obj_t best_GAs_obj = 1 , best_solv4_obj = 0 ;
+        std::vector<std::shared_ptr<problem>> problem_set(mu+lambda) ;
+        std::vector<solution> GA_solution_set(mu+lambda) ;
+        std::vector<solution> solv4_solution_set(mu+lambda) ;
+        std::vector<problem::obj_t> GA_obj_set(mu+lambda) ;
+        std::vector<problem::obj_t> solv4_obj_set(mu+lambda) ;
+
+
         // record stats
         bool record_graph = false, record_solution = false ;
         if (meta.find("save_graph") != meta.end()) record_graph = true;
@@ -140,8 +146,10 @@ public:
         if (record_solution) {
             string src = "data/min-max/es/" ;
             if (meta.find("file_loc") != meta.end() ) src = string(meta["file_loc"]) ;
-            string fname = meta["save_solution"], sig_str = std::to_string(sigma) ;
-            fname = src+ "run="+ std::to_string(run) + "_solution_step="+sig_str.substr(0, sig_str.find(".")+3)+"_"+fname ;
+            std::stringstream ss ;
+            ss << std::fixed << std::setprecision(3) << sigma ;
+            string fname = meta["save_solution"] ;
+            fname = src+ "run="+ std::to_string(run) + "_solution_step="+ss.str()+"_"+fname ;
             fout.open(fname);
             fout << std::fixed;
             begin = std::chrono::steady_clock::now();
@@ -151,25 +159,12 @@ public:
 
 
 
-        auto update_best = [&](unsigned t, unsigned & Gs, bool sorted = false ) {
-
-            bool success = false ;
-            for ( unsigned i = 0 ; i < population.size() ; i++ ) {
-                auto p = ProblemFactory::produce(p_name, generate(population[i]), k);
-                auto GAs_sol = solv->solve(*p) ;
-                auto solv4_sol = mmccpSolver.solve(*p) ;
-
-                auto GAs_obj   = p->objective(GAs_sol) ;
-                auto solv4_obj = p->objective(solv4_sol) ;
-                if ( solv4_obj/GAs_obj > best_solv4_obj/best_GAs_obj ) {
-                    best_GAs_obj = GAs_obj, best_solv4_obj = solv4_obj, best_ins = population[i], best_GAs_sol = GAs_sol, best_solv4_sol = solv4_sol ;
-                    success = true ;
-                }
-
-                if ( sorted ) break ;
+        auto update_best = [&](unsigned t, unsigned & Gs, unsigned index ) {
+  
+            if ( solv4_obj_set[index]/GA_obj_set[index] > best_solv4_obj/best_GAs_obj ) {
+                best_solv4_obj = solv4_obj_set[index], best_GAs_obj = GA_obj_set[index], best_ins = population[index] ;
+                if ( t != T ) Gs++ ;
             }
-
-            if ( t != T && success ) Gs++ ;
 
             if (t % G == 0) {
                 if (5 * Gs > G) sigma_pos /= a, sigma_dat /= a;
@@ -183,7 +178,7 @@ public:
 
                 if ( record_graph ) {
                     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() ;
-                    stat.infos.push_back( ESdata(T-t, ms, best_solv4_obj/best_GAs_obj, best_solv4_obj, best_GAs_obj ) ) ;
+                    stat.infos.push_back( ESdata(T-t, ms, solv4_obj_set[index]/GA_obj_set[index] , solv4_obj_set[index],  GA_obj_set[index] ) ) ;
     
                 }
 
@@ -191,11 +186,11 @@ public:
                 if ( record_solution ) {
                     fout << "T=" << T-t << ' ';
                     fout << "t=" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() <<  ' ';
-                    fout << "best_ratio=" << best_solv4_obj/best_GAs_obj << ' ';
-                    fout << "best_solv4_obj=" << best_solv4_obj << ' ';
-                    fout << "best_GAs=" << best_GAs_obj << ' ';
+                    fout << "best_ratio=" << solv4_obj_set[index]/GA_obj_set[index] << ' ';
+                    fout << "best_solv4_obj=" <<  solv4_obj_set[index] << ' ';
+                    fout << "best_GAs=" << GA_obj_set[index] << ' ';
 
-                    auto [pos, dat] = best_ins ;
+                    auto [pos, dat] = population[index] ;
                     fout << "best_instance=" << pos.size() << ' ';
 
                     fout << "X=" ;
@@ -205,9 +200,9 @@ public:
                     fout << "data=" ;
                     for ( unsigned i = 0 ; i < pos.size() ; i++ )  fout << dat[i] << ' ' ;
                     fout << "best_GAs_solution=" ;
-                    fout << best_GAs_sol ;
+                    fout << GA_solution_set[index] ;
                     fout << "best_solv4_solution=" ;
-                    fout << best_solv4_sol ;
+                    fout << solv4_solution_set[index] ;
                 }
             }
 
@@ -215,38 +210,67 @@ public:
         };
 
 
-        // record initial condition 
-        
+        std::vector<std::pair<problem::obj_t, unsigned>> order(mu);
+        for ( unsigned i = 0 ; i < mu ; i++ ) {
+            population[i] = initialze() ;
+            auto p = ProblemFactory::produce(p_name, generate(population[i]), k);
+            problem_set[i] = p, GA_solution_set[i] = solv->solve(*p), solv4_solution_set[i] = mmccpSolver.solve(*p) ;
+            GA_obj_set[i] = p->objective(GA_solution_set[i]), solv4_obj_set[i] = p->objective(solv4_solution_set[i]) ;
+            order[i] = {-solv4_obj_set[i]/GA_obj_set[i],i} ;
+        }
+
+        std::sort(order.begin(), order.end() ) ;    
+
+
         unsigned Gs = 0;
        
-        update_best(T, Gs) ;
+        update_best(T, Gs, order[0].second) ;
 
+        order.resize(mu+lambda) ;
         while (t--) {
             std::vector<instance> offsprings ;
             
-            auto child = population[0] ;
-            if ( mu > 1 ) child = crossover( population[dis_mu(gen)], population[dis_mu(gen)] ) ;
-    
-
             for ( unsigned i = 0 ; i < lambda ; i++ ) {
+                auto child = population[0] ;
+                if ( mu > 1 ) child = crossover( population[dis_mu(gen)], population[dis_mu(gen)] ) ;
+
                 offsprings.push_back( evolve(child) ) ;
             }
 
             population.insert(population.end(), offsprings.begin(), offsprings.end()) ;
 
-            std::vector<std::pair<problem::obj_t, unsigned>> order(mu+lambda);
             for ( unsigned i = 0 ; i < order.size() ; i++ ) {
-                auto p = ProblemFactory::produce(p_name, generate(population[i]), k);
-                order[i] = {-p->objective(mmccpSolver.solve(*p))/p->objective(solv->solve(*p)),i} ;
+                if ( i >= mu ) problem_set[i] = ProblemFactory::produce(p_name, generate(population[i]), k);
+
+                GA_solution_set[i] = solv->solve(*problem_set[i]), solv4_solution_set[i] = mmccpSolver.solve(*problem_set[i]) ;
+                GA_obj_set[i] = problem_set[i]->objective(GA_solution_set[i]), solv4_obj_set[i] = problem_set[i]->objective(solv4_solution_set[i]) ;
+                order[i] = {-solv4_obj_set[i]/GA_obj_set[i],i} ;
             }
 
             std::sort(order.begin(), order.end() ) ;
+            update_best(t, Gs, order[0].second) ;
 
-            std::vector<instance> fittest_population(mu) ;
-            for ( unsigned i = 0 ; i < mu ; i++ ) fittest_population[i] = population[order[i].second] ;
-            population = fittest_population ;
+            std::vector<instance> temp_pop(mu) ;
+            auto temp_problem = problem_set ;
+            auto temp_GA = GA_solution_set ; 
+            auto temp_sovl4 = solv4_solution_set ;
+            auto temp_GAobj = GA_obj_set ;
+            auto temp_solv4_obj = solv4_obj_set ;
+            for ( unsigned i = 0 ; i < mu ; i++ ) {
+                temp_pop[i] = population[order[i].second] ;
+                temp_problem[i] = problem_set[order[i].second] ;
+                temp_GA[i] = GA_solution_set[order[i].second] ; 
+                temp_sovl4[i] = solv4_solution_set[order[i].second] ;
+                temp_GAobj[i] = GA_obj_set[order[i].second] ;
+                temp_solv4_obj[i] = solv4_obj_set[order[i].second] ;
+            }
 
-            update_best(t, Gs, true) ;
+            problem_set = temp_problem ;
+            GA_solution_set = temp_GA ;
+            solv4_solution_set = temp_sovl4 ;
+            GA_obj_set = temp_GAobj ;
+            solv4_obj_set = temp_solv4_obj ;
+            population = temp_pop ;
             
         }
 
@@ -278,8 +302,10 @@ public:
             std::ofstream fout;
             string src = "data/min-max/es/" ;
             if (meta.find("file_loc") != meta.end() ) src = string(meta["file_loc"]) ;
-            string fname = meta["save_graph"], sig_str = std::to_string(sigma) ;
-            fname = src+"step="+sig_str.substr(0, sig_str.find(".")+3)+"_"+fname ;
+            std::stringstream ss ;
+            ss << std::fixed << std::setprecision(3) << sigma ;
+            string fname = meta["save_graph"] ;
+            fname = src+"step="+ss.str()+"_"+fname ;
             fout.open(fname);
             fout << std::fixed ;
 
@@ -294,10 +320,10 @@ public:
                 }
 
                 fout << "T=" << cycle << ' ';
-                fout << "avg t=" << avg_ms/repeat << ' ';
-                fout << "avg best_ratio=" << avg_best_r/repeat << ' ';
-                fout << "avg best_solv4_obj=" << avg_best_solv4/repeat << ' ';
-                fout << "avg best_GAs=" << avg_best_GAs/repeat << '\n';
+                fout << "avg_t=" << avg_ms/repeat << ' ';
+                fout << "avg_best_ratio=" << avg_best_r/repeat << ' ';
+                fout << "avg_best_solv4_obj=" << avg_best_solv4/repeat << ' ';
+                fout << "avg_best_GAs=" << avg_best_GAs/repeat << '\n';
             }
            
             fout.close() ;

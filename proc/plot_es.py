@@ -47,9 +47,9 @@ def main():
         # print(names)
         for name,df in dfs.items():
             if x == 'T':
-                plt.plot(df['T'], df['best_ratio'], label=name)
+                plt.plot(df['T'], df['avg_best_ratio'], label=name)
             else:
-                plt.plot(df['t']/ 1000.0, df['best_ratio'], label=name)
+                plt.plot(df['avg_t']/ 1000.0, df['avg_best_ratio'], label=name)
             # plt.plot(avg_dfs[name][x], avg_dfs[name]['best'], label=name)
         xlabel = ''
         if x == 'T':
@@ -65,14 +65,14 @@ def main():
         # plt.show()
 
     print("Reading and Parsing Data...")
-    dfs = get_df(['data/min-max/es/'])
+    dfs = get_df(['data/min-max/es/graph/'])
 
     # saves
     print("Analyzing Data and Saving Figures...")
     pfx = 'figure/min-max/es/'
 
-    save_bests(dfs, pfx + 'step_size_T.png', 'T')
-    save_bests(dfs, pfx + 'step_size_t.png', 't')
+    save_bests(dfs, pfx + 'ratio_T.png', 'T')
+    save_bests(dfs, pfx + 'ratio_t.png', 't')
 
 
 if __name__ == '__main__':
