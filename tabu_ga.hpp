@@ -134,15 +134,18 @@ public:
                 fout << "mn=" << chr_min / block << ' ';
                 fout << "avg=" << chr_avg / block / m << ' ';
                 fout << "mx=" << chr_max / block << ' ';
-                fout << "miss=" << tabu_miss << ' ';
-                fout << "hit=" << tabu_hit << ' ';
-                fout << "new=" << tabu_new << ' ';
-                fout << "wams_miss=" << wams_miss << ' ';
-                fout << "diversity=" << diversity << '\n';
+                // fout << "miss=" << tabu_miss << ' ';
+                // fout << "hit=" << tabu_hit << ' ';
+                // fout << "new=" << tabu_new << ' ';
+                // fout << "wams_miss=" << wams_miss << ' ';
+                fout << "new=" << new_offspring << ' ';
+                fout << "diversity=" << diversity << ' ';
+                fout << '\n';
 
                 tabu_hit = 0, tabu_miss = 0, tabu_new = 0;
                 wams_miss = 0;
                 diversity = 0;
+                new_offspring = 0;
                 chr_max = 0, chr_min = 0, chr_avg = 0;
             }
             if (debug) {
@@ -168,75 +171,115 @@ public:
                 for (unsigned i = 0; i < a.size(); ++i) re += std::min(a[i] - b[i], b[i] - a[i]);
                 return re;
             };
-            auto wams = [&](const chromosome& chr) {
-                auto picks = selection_random(pool, group_size);
-                unsigned worst = pool.size();
-                problem::obj_t worst_fit = 1e9;
-                for (unsigned i = 0; i < m; i += group_size) {
-                    unsigned nearest = i, nearest_dis = 1e9;
-                    for (unsigned j = 0; j < group_size; ++j) {
-                        unsigned ndis = dis(pool[i + j], chr);
-                        if (ndis < nearest_dis) nearest = i + j, nearest_dis = ndis;
-                    }
-                    problem::obj_t nfit = fitness(pool[nearest]);
-                    if (nfit < worst_fit) worst = nearest, worst_fit = nfit;
-                } 
-                std::uniform_real_distribution<float> dis(0, 1);
-                problem::obj_t chr_fit = fitness(chr);
-                auto accept_rate = [&]() {
-                    return (std::pow(wams_rate, worst_fit / chr_fit) - 1) / (wams_rate - 1);
-                };
-                if (worst_fit < chr_fit || dis(gen) < accept_rate()) {
-                    pool[worst] = chr;
-                    tbs.insert(chr);
-                }
-                else ++wams_miss;
-            };
+            // auto wams = [&](const chromosome& chr) {
+            //     // auto picks = selection_random(pool, group_size);
+            //     unsigned worst = pool.size();
+            //     problem::obj_t worst_fit = 1e9;
+            //     for (unsigned i = 0; i < m; i += group_size) {
+            //         unsigned nearest = i, nearest_dis = 1e9;
+            //         for (unsigned j = 0; j < group_size; ++j) {
+            //             unsigned ndis = dis(pool[i + j], chr);
+            //             if (ndis < nearest_dis) nearest = i + j, nearest_dis = ndis;
+            //         }
+            //         problem::obj_t nfit = fitness(pool[nearest]);
+            //         if (nfit < worst_fit) worst = nearest, worst_fit = nfit;
+            //     } 
+            //     // std::uniform_real_distribution<float> dis(0, 1);
+            //     // problem::obj_t chr_fit = fitness(chr);
+            //     // auto accept_rate = [&]() {
+            //     //     return (std::pow(wams_rate, worst_fit / chr_fit) - 1) / (wams_rate - 1);
+            //     // };
+            //     // if (worst_fit < chr_fit || dis(gen) < accept_rate()) {
+            //     //     pool[worst] = chr;
+            //     //     tbs.insert(chr);
+            //     // }
+            //     if (worst_fit < fitness(chr)) {
+            //         pool[worst] = chr;
+            //         tbs.insert(chr);
+            //     }
+            //     else ++wams_miss;
+            // };
+
+            // auto multimutation = [&](chromosome& chr) {
+            //     unsigned cnt = 0;
+            //     do {
+            //         mutation(chr);
+            //     } while (tbs.contains(chr) && ++cnt < tabu_tol);
+            //     tabu_hit += cnt;
+            //     if (cnt >= tabu_tol) chr = random_chromosome(), ++tabu_new;
+            //     else ++tabu_miss;
+            // };
 
             // crossover
             std::uniform_real_distribution<float> dis01(0, 1);
             for (unsigned i = 0; i + 1 < parent_size; i += 2) {
-                chromosome c1, c2;
-                bool v1, v2;
-                unsigned cnt = 0;
-                do {
-                    c1 = pool[parent[i]], c2 = pool[parent[i + 1]];
-                    crossover(c1, c2);
+                chromosome c1 = pool[parent[i]], c2 = pool[parent[i + 1]];
+                crossover(c1, c2);
+                // if (dis01(gen) < mutation_rate) multimutation(c1);
+                // if (dis01(gen) < mutation_rate) multimutation(c2);
+                if (dis01(gen) < mutation_rate) mutation(c1);
+                if (dis01(gen) < mutation_rate) mutation(c2);
+                // wams(c1);
+                // wams(c2);
+                pool.push_back(c1);
+                pool.push_back(c2);
+                // chromosome c1, c2;
+                // bool v1, v2;
+                // unsigned cnt = 0;
+                // do {
+                //     c1 = pool[parent[i]], c2 = pool[parent[i + 1]];
+                //     crossover(c1, c2);
 
-                    // mutation
-                    if (dis01(gen) < mutation_rate) mutation(c1);
-                    if (dis01(gen) < mutation_rate) mutation(c2);
+                //     // mutation
+                //     if (dis01(gen) < mutation_rate) mutation(c1);
+                //     if (dis01(gen) < mutation_rate) mutation(c2);
                     
-                    v1 = tbs.contains(c1), v2 = tbs.contains(c2);
-                    if (!v1) wams(c1);
-                    if (!v2) wams(c2);
+                //     v1 = tbs.contains(c1), v2 = tbs.contains(c2);
+                //     if (!v1) wams(c1);
+                //     if (!v2) wams(c2);
 
-                    tabu_hit += v1 + v2;
-                    tabu_miss += !v1 + !v2;
-                } while (v1 && v2 && ++cnt < tabu_tol);
+                //     tabu_hit += v1 + v2;
+                //     tabu_miss += !v1 + !v2;
+                // } while (v1 && v2 && ++cnt < tabu_tol);
                 
-                if (cnt >= tabu_tol) pool[parent[i]] = random_chromosome(), pool[parent[i + 1]] = random_chromosome(), tabu_new += 2;
+                // if (cnt >= tabu_tol) pool[parent[i]] = random_chromosome(), pool[parent[i + 1]] = random_chromosome(), tabu_new += 2;
             }
 
             // mutation all
-            // for (auto& chr : pool) {
-            //     if (dis01(gen) > mutation_rate) continue;
-            //     unsigned cnt = 0;
-            //     chromosome cpy = chr;
-            //     mutation(cpy);
-            //     while (!tbs.contains(cpy) && ++cnt < tabu_tol) mutation(cpy);
-            //     tabu_hit += cnt;
-            //     if (cnt >= tabu_tol) {
-            //         // almost all neighbor of chr is visited, replace chr with a random chromosome directly
-            //         chr = random_chromosome();
-            //         ++tabu_new;
-            //     }
-            //     else {
-            //         ++tabu_miss;
-            //         chr = std::move(cpy);
-            //         tbs.insert(chr);
-            //     }
-            // }
+            for (auto& chr : pool) {
+                if (dis01(gen) < mutation_rate) {
+                    // auto cpy = chr;
+                    // multimutation(cpy);
+                    // multimutation(chr);
+                    mutation(chr);
+                    // wams(cpy);
+                    // tbs.insert(chr);
+                } 
+                
+                // unsigned cnt = 0;
+                // chromosome cpy = chr;
+                // mutation(cpy);
+                // while (!tbs.contains(cpy) && ++cnt < tabu_tol) mutation(cpy);
+                // tabu_hit += cnt;
+                // if (cnt >= tabu_tol) {
+                //     // almost all neighbor of chr is visited, replace chr with a random chromosome directly
+                //     chr = random_chromosome();
+                //     ++tabu_new;
+                // }
+                // else {
+                //     ++tabu_miss;
+                //     chr = std::move(cpy);
+                //     tbs.insert(chr);
+                // }
+            }
+
+            auto selected_idx = replacement(pool, m);
+            population selected;
+            for (auto v : selected_idx) {
+                selected.push_back(pool[v]);
+                new_offspring += v >= m;
+            }
+            pool = std::move(selected);
 
             update_best(t);
             std::uniform_int_distribution<unsigned> dis_ppl(0, pool.size() - 1);
@@ -253,6 +296,7 @@ protected:
     unsigned tabu_hit = 0, tabu_miss = 0, tabu_new = 0;
     unsigned wams_miss = 0;
     unsigned diversity = 0;
+    unsigned new_offspring = 0;
     problem::obj_t chr_max = 0, chr_min = 0, chr_avg = 0;
 
     float wams_rate = 1000;

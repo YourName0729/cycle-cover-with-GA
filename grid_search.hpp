@@ -65,15 +65,17 @@ protected:
         ArgContainer ac;
         std::vector<ArgContainer> re;
         std::vector<std::string> selections = {"elitism", "tournament", "random", "roulette_wheel"};
-        std::vector<std::string> replacements = {"elitism", "tournament", "roulette_wheel"};
+        std::vector<std::string> replacements = {"elitism"};
         std::vector<std::string> crossovers = {"cycle", "edge_recomb", "pmx", "ox"};
         std::vector<std::string> mutations = {"insert", "inverse", "scramble", "swap"};
         
         ac.insert("m", "100");
-        ac.insert("T", "30000");
-        ac.insert("block", "100");
+        ac.insert("T", "50000");
+        ac.insert("block", "500");
+        ac.insert("parent_ratio", "0.8");
+        ac.insert("mutation_rate", "0.2");
 
-        ac.insert("name", "ss-ga");
+        // ac.insert("name", "ss-ga");
         // std::string s = "tournament", c = "edge_recomb", m = "scramble";
         // ac.insert("selection", s);
         // ac.insert("crossover", c);
@@ -82,21 +84,21 @@ protected:
         // re.push_back(ac);
         // return re;
 
-        for (auto& s : selections) for (auto& c : crossovers) for (auto& m : mutations) {
-            ac.insert("selection", s);
-            ac.insert("crossover", c);
-            ac.insert("mutation", m);
-            ac.insert("save", dir + "/ss/" + s + "_" + c + "_" + m);
-            re.push_back(ac);
-        }
+        // for (auto& s : selections) for (auto& c : crossovers) for (auto& m : mutations) {
+        //     ac.insert("selection", s);
+        //     ac.insert("crossover", c);
+        //     ac.insert("mutation", m);
+        //     ac.insert("save", dir + "/ss/" + s + "_" + c + "_" + m);
+        //     re.push_back(ac);
+        // }
 
-        ac.insert("name", "standard-ga");
+        ac.insert("name", "tabu-ga");
         for (auto& s : selections) for (auto& r : replacements) for (auto& c : crossovers) for (auto& m : mutations) {
             ac.insert("selection", s);
             ac.insert("replacement", r);
             ac.insert("crossover", c);
             ac.insert("mutation", m);
-            ac.insert("save", dir + "/standard/" + s + "_" + r + "_" + c + "_" + m);
+            ac.insert("save", dir + "/tabu2/" + s + "_" + r + "_" + c + "_" + m);
             re.push_back(ac);
         }
         return re;
@@ -108,5 +110,5 @@ protected:
     bool demo = false;
 
     std::string pname = "min-max";
-    std::string dir = "data";
+    std::string dir = "data/min-max";
 };

@@ -60,7 +60,13 @@ make
 
 Test Comparison
 ```
-./cycle_cover --constructor="name=comparison"
+./cycle_cover --constructor="name=comparison n=25 k=5 sigma=0.2 save_graph=data/es3/graph/ save=data/es3/es.txt"
+```
+
+Test ES
+```
+make
+./cycle_cover --constructor="name=es2 demo=1"
 ```
 
 ## GA parameters
@@ -103,7 +109,8 @@ Test Comparison
 ./cycle_cover --result --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=elitism-ga crossover=cycle mutation=swap m=10 T=100'"
 ./cycle_cover --result --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=standard-ga selection=roulette_wheel replacement=elitism crossover=cycle mutation=inverse m=10 T=100'"
 ./cycle_cover --result --constructor="name=min-deploy k=2 n=10 problem=min-max solver='name=fast-ga selection=random crossover=cycle mutation=inverse m=10 T=100'"
-./cycle_cover  --constructor="name=min-deploy k=30 n=500 problem=min-max solver='name=tabu-ga selection=elitism crossover=edge_recomb mutation=insert m=100 T=30000 save=data/tabu_ga.txt block=50'"
+./cycle_cover  --constructor="name=min-deploy k=30 n=500 problem=min-max solver='name=tabu-ga selection=elitism crossover=edge_recomb mutation=swap perent_ratio=1 mutation_rate=0.2 m=100 T=30000 save=data/tabu_ga3.txt block=50'"
+./cycle_cover  --constructor="name=min-deploy k=30 n=500 problem=min-max solver='name=tabu-ga selection=roulette_wheel replacement=elitism crossover=edge_recomb mutation=swap parent_ratio=0.8 mutation_rate=0.2 m=100 T=50000 save=data/tabu_ga3.txt block=50'"
 ```
 
 ## Grid Search

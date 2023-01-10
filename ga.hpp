@@ -456,8 +456,8 @@ protected:
     float parent_ratio = 0.6; // ratio of population being parents
     float mutation_rate = 0.75;
 
-    unsigned tournament_k = 5;
-    unsigned tournament_p = 0.75;
+    unsigned tournament_k = 2;
+    unsigned tournament_p = 0.7;
 
     bool demo = false;
     bool debug = false;

@@ -119,17 +119,18 @@ def main():
         # plt.show()
 
     print("Reading and Parsing Data...")
-    dfs = get_df(['../data/min-max/ss/', '../data/min-max/standard/'])
+    # dfs = get_df(['../data/min-max/ss/', '../data/min-max/standard/'])
+    dfs = get_df(['../data/min-max/tabu2/'])
     avg_dfs = avg_instance(dfs)
 
     # saves
     print("Analyzing Data and Saving Figures...")
-    pfx = '../figure/min-max/'
+    pfx = '../figure/min-max/tabu2/'
 
     save_bests(avg_dfs, pfx + 'best_T.png', 'T', 5)
     save_bests(avg_dfs, pfx + 'best_t.png', 't', 5)
-    save_avg_by_index(avg_dfs, 0, pfx + 'ga_t.png', 't')
-    save_avg_by_index(avg_dfs, 0, pfx + 'ga_T.png', 'T')
+    # save_avg_by_index(avg_dfs, 0, pfx + 'ga_t.png', 't')
+    # save_avg_by_index(avg_dfs, 0, pfx + 'ga_T.png', 'T')
     save_avg_by_index(avg_dfs, 1, pfx + 'selection_t.png', 't')
     save_avg_by_index(avg_dfs, 1, pfx + 'selection_T.png', 'T')
     save_avg_by_index(avg_dfs, 2, pfx + 'replacement_t.png', 't')

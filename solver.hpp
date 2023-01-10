@@ -202,18 +202,18 @@ public:
             }
         }
 
-        std::cout << graph ;
+        if (demo) std::cout << graph ;
 
         // find MSTs of each connected component 
-        std::cout << "\n----------Step1 : Find MSTs for each connected components ----------\n\n" ;
+        if (demo) std::cout << "\n----------Step1 : Find MSTs for each connected components ----------\n\n" ;
         auto MSTs = find_MSTs(graph) ;
      
      
-        std::cout << "The number of minimum spanning trees is : " << MSTs.size() ;
+        if (demo) std::cout << "The number of minimum spanning trees is : " << MSTs.size() ;
      
-        std::cout << "\n----------Step1 : Find MSTs for each connected components ----------\n\n" ; 
+        if (demo) std::cout << "\n----------Step1 : Find MSTs for each connected components ----------\n\n" ; 
 
-        std::cout << "\n----------Step2 : Find minimum weighted perfect mathcing  ----------\n\n" ; 
+        if (demo) std::cout << "\n----------Step2 : Find minimum weighted perfect mathcing  ----------\n\n" ; 
 
 
         // Find minimum weighted perfect matching 
@@ -238,7 +238,7 @@ public:
             }
         }
 
-        std::cout << "The number of odd degree nodes : " << V_o.size() << std::endl ;
+        if (demo) std::cout << "The number of odd degree nodes : " << V_o.size() << std::endl ;
         // construct G_o complete graph 
    
         const int n_vertices = V_o.size() ;
@@ -278,10 +278,10 @@ public:
         }
         // form eulerian circuit 
 
-        std::cout << "\n----------Step2 : Find minimum weighted perfect mathcing  ----------\n" ;
+        if (demo) std::cout << "\n----------Step2 : Find minimum weighted perfect mathcing  ----------\n" ;
 
 
-        std::cout << "\n----------Step3 : Form Eulerian Circuit  ---------------------------\n\n" ;
+        if (demo) std::cout << "\n----------Step3 : Form Eulerian Circuit  ---------------------------\n\n" ;
 
 
 
@@ -312,12 +312,12 @@ public:
             ECs[ECs_mapping[trees.find(V_o_mapping[m.first])]].push_back(m) ;
         }
 
-        std::cout << "The number of ECs is : " << ECs.size() << std::endl ;
+        if (demo) std::cout << "The number of ECs is : " << ECs.size() << std::endl ;
 
-        std::cout << "\n----------Step3 : Form Eulerian Circuit  ---------------------------\n" ;
+        if (demo) std::cout << "\n----------Step3 : Form Eulerian Circuit  ---------------------------\n" ;
        
 
-        std::cout << "\n----------Step4 : Obtain tour from EC and tour division  -----------\n\n" ; 
+        if (demo) std::cout << "\n----------Step4 : Obtain tour from EC and tour division  -----------\n\n" ; 
 
         // Obtain tour from EC and tour division 
         for ( size_t i = 0 ; i < ECs.size() ; i++ ) {
@@ -350,13 +350,13 @@ public:
           
             if ( ins.get_B()-tour_cost > 1e-5 ) {
                 Ci.push_back(tour_visit) ;
-                std::cout << "Add new tour to Ci , size = " << Ci.back().size() << "\n" ; 
+                if (demo) std::cout << "Add new tour to Ci , size = " << Ci.back().size() << "\n" ; 
             }
             else {
                 auto split = tour_visit ;
                 auto residual_cost = tour_cost ;
                 while ( residual_cost-ins.get_B() > 1e-5 ) {
-                    std::cout << "Tour cost exceed limit : " << residual_cost << "\n" ;
+                    if (demo) std::cout << "Tour cost exceed limit : " << residual_cost << "\n" ;
                     split.pop_back() ;
                     float newPath_cost = 0 ;
                     std::vector<unsigned> newPath ; 
@@ -375,8 +375,8 @@ public:
                     }
                 
                     newPath.push_back(newPath[0]) ;
-                    std::cout << "sub-path cost " << newPath_cost << "\n" ;
-                    std::cout << "The number of node in the tour sub-path " << newPath.size()-1 << "\n" ;
+                    if (demo) std::cout << "sub-path cost " << newPath_cost << "\n" ;
+                    if (demo) std::cout << "The number of node in the tour sub-path " << newPath.size()-1 << "\n" ;
               
                     newPath_cost += ins.copy()(split[r-1],split[l+1]) ;
                     if ( l == split.size()-1 ) {
@@ -386,7 +386,7 @@ public:
                         split = std::vector<unsigned>(split.begin()+r,split.begin()+l+1) ;
                     }
 
-                    std::cout << "The number of node in the residual_tour " << split.size()-1 << "\n" ;
+                    if (demo) std::cout << "The number of node in the residual_tour " << split.size()-1 << "\n" ;
 
                     residual_cost = 0 ;
                     for ( size_t j = 0 ; j < split.size()-1 ; j++ ) {
@@ -397,21 +397,21 @@ public:
                     split.push_back(split[0]) ;
                     Ci.push_back(newPath) ;
 
-                    std::cout << "Add new tour to Ci , size = " << Ci.back().size() << "\n" ; 
+                    if (demo) std::cout << "Add new tour to Ci , size = " << Ci.back().size() << "\n" ; 
                 }
 
                 if ( residual_cost != 0 or split.size() != 0 ) {
                     residual_cost += ins.copy()(split[0],split.back()) ; 
                     Ci.push_back(split) ;
 
-                    std::cout << "Add new tour to Ci , size = " << Ci.back().size() << "\n" ; 
+                    if (demo) std::cout << "Add new tour to Ci , size = " << Ci.back().size() << "\n" ; 
                 }
             }
 
         
         }
 
-        std::cout << "\n----------Step4 : Obtain tour from EC and tour division  -----------\n" ; 
+        if (demo) std::cout << "\n----------Step4 : Obtain tour from EC and tour division  -----------\n" ; 
 
         return Ci ;
     }
@@ -421,11 +421,11 @@ public:
         solution best ;
         size_t n = ins.copy().size() ;
         best.resize(n) ; 
-        if ( ! demo ) std::cout.setstate(std::ios_base::failbit);
+        // if ( ! demo ) std::cout.setstate(std::ios_base::failbit);
 
         float threshold = ins.get_B()/4 ;
         best = christofideMethod(threshold, ins ) ;
-        std::cout.clear();
+        // std::cout.clear();
         return best ;
     }
 

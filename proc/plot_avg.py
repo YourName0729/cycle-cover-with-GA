@@ -23,15 +23,16 @@ def unique(arr):
 
 def main():
     pfx = '../data/comp/'
-    fpaths = [pfx + 'tabu-ga min-max.txt', pfx + 'tagu-ga_min-max_2.txt']
+    fpaths = [pfx + 'tabu-ga min-max.txt']
     dest = '../figure/comp_avg.png'
 
     colors = list(mpl.rcParams['axes.prop_cycle'])
     colors = [x['color'] for x in colors]
     plt.rcParams['text.usetex'] = True
 
-    dfs = [arg2df(fpaths[0]), arg2df(fpaths[1])]
-    df = pd.concat(dfs)
+    dfs = [arg2df(fpaths[0])]
+    # df = pd.concat(dfs)
+    df = dfs[0]
 
     ns = unique(df['n'].to_numpy())
     obj1 = [df[df['n'] == n]['obj1'].sum() / np.count_nonzero((df['n'] == n).to_numpy()) for n in ns]
@@ -40,16 +41,16 @@ def main():
     fig, ax1 = plt.subplots()
     ax1.set_xlabel('$n$')
     ax1.plot(ns, -np.array(obj1), label='Fitness of GA')
-    ax1.plot(ns, -np.array(obj2), label='Fitness of approAlgNoNei')
+    ax1.plot(ns, -np.array(obj2), label='Fitness of $\mathcal A$')
     ax1.set_ylabel('Fitness')
     ax1.legend(loc='upper center')
 
     ax2 = ax1.twinx()
     ax2.plot(ns, np.array(obj2) / np.array(obj1), color=colors[2])
-    xv, yv = 110, 1
+    xv, yv = 75, 1
     ax2.plot([xv, xv], [0, yv], color=colors[2], linestyle='dashed')
     ax2.plot([xv, 500], [yv, yv], color=colors[2], linestyle='dashed')
-    ax2.set_ylabel('Ratio', color = colors[2])
+    ax2.set_ylabel('Ratio (fitness of GA / fitness of $\mathcal A$)', color = colors[2])
     ax2.tick_params(axis ='y', labelcolor = colors[2])
 
     plt.savefig(dest)

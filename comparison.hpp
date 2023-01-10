@@ -54,7 +54,7 @@ protected:
 
 public:
     virtual std::pair<std::shared_ptr<problem>, solution> construct() override {
-        std::string arg1 = "name=tabu-ga selection=elitism crossover=edge_recomb mutation=insert m=100 T=30000";
+        std::string arg1 = "name=tabu-ga selection=roulette_wheel replacement=elitism crossover=edge_recomb mutation=swap parent_ratio=0.8 mutation_rate=0.2 m=100 T=50000";
         std::string arg2 = "name=min-max demo=0";
         assign("solver1", arg1);
         assign("solver2", arg2);
@@ -68,21 +68,45 @@ public:
         std::shared_ptr<problem> ins;
         solution sol1, sol2;
 
+        auto simulate_one = [&](int T, int n) {
+            if (demo) std::cout << T << ' ' << n << '\n';
+            ins = ProblemFactory::produce("min-max", generate(initialze(n)), k);
+            if (demo) std::cout << "solve 1\n";
+            sol1 = solv[0]->solve(*ins);
+            if (demo) std::cout << "solve 2\n";
+            sol2 = solv[1]->solve(*ins);
+            
+            fout << "T=" << T << ' ';
+            fout << "n=" << n << ' ';
+            fout << "obj1=" << ins->objective(sol1) << ' ';
+            fout << "obj2=" << ins->objective(sol2) << ' ';
+            fout << std::endl;
+        };
+
+        for (unsigned i = 0; i < linspace; ++i) {
+            for (unsigned j = 0; j < T; ++j) {
+                unsigned n = (99 - 50) * i / (linspace - 1) + 50;
+                simulate_one(j, n);
+            }
+        }
+
         for (unsigned i = 0; i < linspace; ++i) {
             for (unsigned j = 0; j < T; ++j) {
                 unsigned n = (n_ub - n_lb) * i / (linspace - 1) + n_lb;
-                if (demo) std::cout << i << ' ' << j << '\n';
-                ins = ProblemFactory::produce("min-max", generate(initialze(n)), k);
-                if (demo) std::cout << "solve 1\n";
-                sol1 = solv[0]->solve(*ins);
-                if (demo) std::cout << "solve 2\n";
-                sol2 = solv[1]->solve(*ins);
+                simulate_one(j, n);
                 
-                fout << "T=" << j << ' ';
-                fout << "n=" << n << ' ';
-                fout << "obj1=" << ins->objective(sol1) << ' ';
-                fout << "obj2=" << ins->objective(sol2) << ' ';
-                fout << std::endl;
+                // if (demo) std::cout << i << ' ' << j << '\n';
+                // ins = ProblemFactory::produce("min-max", generate(initialze(n)), k);
+                // if (demo) std::cout << "solve 1\n";
+                // sol1 = solv[0]->solve(*ins);
+                // if (demo) std::cout << "solve 2\n";
+                // sol2 = solv[1]->solve(*ins);
+                
+                // fout << "T=" << j << ' ';
+                // fout << "n=" << n << ' ';
+                // fout << "obj1=" << ins->objective(sol1) << ' ';
+                // fout << "obj2=" << ins->objective(sol2) << ' ';
+                // fout << std::endl;
             }
         }
 
